@@ -52,11 +52,11 @@ async function PengaturanPerluDilengkapi() {
     supabase.from("data_armada").select("*", { count: "exact", head: true }).eq("is_active", true),
   ]);
 
-  const kurang: string[] = [];
-  if (s?.ambang_peringatan_kapasitas_persen == null) kurang.push("Ambang peringatan kapasitas truk (%)");
-  if (!s?.alamat || !s?.telepon) kurang.push("Alamat dan telepon perusahaan untuk resi");
-  if (!jumlahItem) kurang.push("Master jenis barang dan tarif");
-  if (!jumlahArmada) kurang.push("Data armada beserta kapasitas masing-masing");
+  const kurang: { label: string; href: string }[] = [];
+  if (s?.ambang_peringatan_kapasitas_persen == null) kurang.push({ label: "Ambang peringatan kapasitas truk (%)", href: "/pengaturan" });
+  if (!s?.alamat || !s?.telepon) kurang.push({ label: "Alamat dan telepon perusahaan untuk resi", href: "/pengaturan" });
+  if (!jumlahItem) kurang.push({ label: "Master jenis barang dan tarif", href: "/master/item" });
+  if (!jumlahArmada) kurang.push({ label: "Data armada beserta kapasitas masing-masing", href: "/armada" });
 
   if (kurang.length === 0) return null;
   return (
@@ -72,7 +72,11 @@ async function PengaturanPerluDilengkapi() {
       <CardContent>
         <ul className="list-disc space-y-1 pl-5 text-sm">
           {kurang.map((k) => (
-            <li key={k}>{k}</li>
+            <li key={k.label}>
+              <Link href={k.href} className="underline-offset-4 hover:underline">
+                {k.label}
+              </Link>
+            </li>
           ))}
         </ul>
       </CardContent>

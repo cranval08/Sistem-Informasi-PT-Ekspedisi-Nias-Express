@@ -60,10 +60,10 @@ describe("Supir", () => {
   });
 
   it("tidak dapat mengubah status armada secara langsung", async () => {
-    await sebagai(db, "supir", async (tx) => {
-      const r = await tx.query("update public.data_armada set status = 'perjalanan' returning id_armada");
-      expect(r.rows).toHaveLength(0);
-    });
+    // Kolom status hanya dapat diubah lewat fungsi server (Fase 2).
+    await expect(
+      baris(db, "supir", "update public.data_armada set status = 'perjalanan' returning id_armada"),
+    ).rejects.toThrow(/permission denied/);
   });
 });
 

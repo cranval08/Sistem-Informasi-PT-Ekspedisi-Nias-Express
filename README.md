@@ -2,7 +2,15 @@
 
 Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pembayaran, manifes, armada, status pengiriman, dan dashboard. Kebutuhan lengkap ada di [`PRD.md`](PRD.md).
 
-> **Status: Fase 1 (fondasi) selesai.** Autentikasi, hak akses per peran, skema database lengkap + RLS, layout, dan sistem desain sudah tersedia. Modul lain tampil sebagai halaman berlabel *"dijadwalkan pada Fase N"* dan belum terhubung ke database.
+> **Status: Fase 2 (data inti) selesai.** Selain fondasi Fase 1 (autentikasi, hak akses per peran, skema database + RLS, layout, sistem desain), modul berikut sudah terhubung ke database:
+>
+> - **Pelanggan** (Pemilik, Admin Loket): cari nama/telepon, paginasi, tambah/ubah, nonaktif/aktifkan, peringatan nomor telepon ganda.
+> - **Jenis barang & tarif** (Pemilik): tambah/ubah tarif, nonaktifkan, riwayat perubahan (nilai lama → baru) dari audit log.
+> - **Armada** (Pemilik kelola, Staf Gudang lihat): plat, jenis, kapasitas wajib, supir dari pengguna berperan Supir, ubah status dengan catatan, riwayat status.
+> - **Pengguna** (Pemilik): buat akun login, ubah nama/telepon/peran, nonaktif/aktifkan (sekaligus blokir login), atur ulang password.
+> - **Pengaturan** (Pemilik): identitas perusahaan, prefiks resi, ambang peringatan kapasitas, kebijakan override, mode demo.
+>
+> Modul lain (transaksi, pembayaran, manifes, laporan, audit log) masih tampil sebagai halaman berlabel *"dijadwalkan pada Fase N"*.
 
 ## Teknologi
 
@@ -67,6 +75,14 @@ npm run seed:akun
 | Staf Gudang | `demo.gudang@example.com` | nilai `DEMO_PASSWORD` |
 | Supir | `demo.supir@example.com` | nilai `DEMO_PASSWORD` |
 
+Lalu, opsional, isi data contoh Fase 2 (pelanggan, jenis barang dengan **tarif contoh**, armada dengan **kapasitas contoh**):
+
+```bash
+npm run seed:demo
+```
+
+Idempoten (baris yang sudah ada dilewati, tidak ditimpa) dan menolak berjalan bila `mode_demo` sudah dimatikan. Semua nama diawali `[Demo]`, nomor telepon fiktif, plat memakai kode wilayah fiktif `XX`. Tarif dan kapasitas **bukan** nilai aktual perusahaan dan harus diganti Pemilik.
+
 Semua akun dan data demo diberi label **Data Demo** dan bukan data aktual perusahaan. Banner "Data Demo" dikendalikan oleh `pengaturan.mode_demo`.
 
 ## 4. Menjalankan
@@ -101,6 +117,7 @@ Tes database (`tests/db/`) menjalankan seluruh migrasi di **PGlite** (Postgres d
 2. Isi environment variables di Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, dan `SUPABASE_SECRET_KEY` (tandai *Sensitive*; tanpa `DEMO_PASSWORD`).
 3. Di Supabase: Authentication → URL Configuration → isi **Site URL** dengan domain Vercel (HTTPS).
 4. Terapkan migrasi baru dengan `npm run db:push` sebelum deploy kode yang membutuhkannya.
+   `SUPABASE_SECRET_KEY` dibutuhkan di server untuk membuat akun, menonaktifkan login, dan mengatur ulang password dari menu Data Pengguna.
 5. Aktifkan backup database sesuai paket Supabase.
 
 ## Integrasi yang belum tersedia

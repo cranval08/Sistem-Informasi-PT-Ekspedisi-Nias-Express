@@ -222,13 +222,14 @@ describe("armada & manifes", () => {
 
   it("perubahan status armada tercatat di riwayat", async () => {
     await sebagai(db, "pemilik", (tx) =>
-      tx.query("update public.data_armada set status = 'perbaikan' where plat_nomor = 'BB 1001 AA'"),
+      tx.query("select public.ubah_status_armada('30000000-0000-4000-8000-000000000001', 'perbaikan', 'Ganti oli')"),
     );
-    const { rows } = await db.query<{ status_baru: string; id_pengguna: string }>(
-      "select status_baru, id_pengguna from public.riwayat_status_armada r join public.data_armada a using (id_armada) where a.plat_nomor = 'BB 1001 AA' order by r.id",
+    const { rows } = await db.query<{ status_baru: string; id_pengguna: string; catatan: string | null }>(
+      "select status_baru, r.id_pengguna, r.catatan from public.riwayat_status_armada r join public.data_armada a using (id_armada) where a.plat_nomor = 'BB 1001 AA' order by r.id",
     );
     expect(rows.map((r) => r.status_baru)).toEqual(["siaga", "perbaikan"]);
     expect(rows[1].id_pengguna).toBe(ID.pemilik);
+    expect(rows[1].catatan).toBe("Ganti oli");
   });
 
   const buatManifes = (armada: string) =>

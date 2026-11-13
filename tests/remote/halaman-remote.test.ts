@@ -65,4 +65,14 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
       }
     });
   }
+
+  // Rute dinamis: id tidak ada → 404 (bukan 500); peran tanpa akses → /akses-ditolak.
+  it.each(Object.keys(AKUN) as Peran[])("%s: /armada/[id] tidak dikenal", async (peran) => {
+    const res = await fetch(`${APP}/armada/00000000-0000-4000-8000-000000000000`, {
+      headers: { cookie: cookie[peran] },
+      redirect: "manual",
+    });
+    if (bolehAkses(peran, "armada")) expect(res.status).toBe(404);
+    else expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
+  });
 });

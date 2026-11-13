@@ -58,6 +58,18 @@ export async function wajibLogin(): Promise<Profil> {
 }
 
 /**
+ * Untuk server action: profil bila login dengan peran yang diizinkan,
+ * selain itu null (action membalas pesan galat, bukan redirect). Server
+ * action dapat dipanggil langsung lewat POST, jadi pemeriksaan ini wajib
+ * di setiap action — RLS/RPC tetap menjadi penjaga terakhir.
+ */
+export async function profilUntukAksi(...peran: Peran[]): Promise<Profil | null> {
+  const profil = await ambilProfil();
+  if (!profil || !peran.includes(profil.peran)) return null;
+  return profil;
+}
+
+/**
  * Wajib login dan peran diizinkan untuk rute. Panggil di awal setiap
  * page.tsx internal (layout tidak dirender ulang saat navigasi klien).
  */

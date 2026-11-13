@@ -13,6 +13,7 @@
     "db:link": "supabase link",
     "db:push": "supabase db push --remote",
     "seed:akun": "tsx scripts/seed-akun-demo.ts",
+    "seed:demo": "tsx scripts/seed-data-demo.ts",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "cek:env": "tsx scripts/cek-env.ts",
     "verifikasi:remote": "tsx scripts/verifikasi-remote.ts",
