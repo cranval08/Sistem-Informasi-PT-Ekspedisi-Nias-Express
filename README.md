@@ -44,8 +44,11 @@ Migrasi ada di `supabase/migrations/`. Terapkan ke project cloud dengan Supabase
 ```bash
 npx supabase login                         # sekali, membuka browser
 npx supabase link --project-ref <project-ref>   # akan meminta password database
-npm run db:push                            # menerapkan semua migrasi
+npm run db:push                            # menerapkan migrasi ke project cloud (supabase db push --remote)
+npm run verifikasi:remote                  # cek read-only: tabel, pengaturan, akun demo, penolakan anon
 ```
+
+Supabase CLI v3 menargetkan database lokal secara default; `npm run db:push` sudah memakai `--remote`.
 
 Alternatif tanpa CLI: jalankan isi setiap berkas di `supabase/migrations/` secara berurutan di **SQL Editor** Supabase.
 
@@ -82,7 +85,10 @@ npm run typecheck
 npm run lint
 npm run build
 npm run check                             # semua di atas berurutan
+npm run test:remote                       # uji RLS ke Supabase Cloud dengan akun demo (butuh seed)
 ```
+
+`npm run test:remote` login sebagai keempat akun demo memakai publishable key dan memastikan RLS menolak akses yang tidak sah. Uji ini hanya membaca atau mencoba menulis yang harus ditolak, sehingga tidak mengubah data.
 
 Tes database (`tests/db/`) menjalankan seluruh migrasi di **PGlite** (Postgres dalam WASM) dengan shim skema `auth` Supabase, jadi tidak menyentuh database cloud dan tidak butuh Docker.
 

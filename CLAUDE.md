@@ -17,7 +17,9 @@ npm run typecheck                   # next typegen + tsc (route types like PageP
 npm run lint
 npm run build
 npm run check                       # typecheck + lint + test + build — run before declaring work done
-npm run db:push                     # apply supabase/migrations to the linked cloud project
+npm run db:push                     # apply supabase/migrations to the linked cloud project (CLI v3 needs --remote; script includes it)
+npm run verifikasi:remote           # read-only check of the cloud DB (tables, settings, demo accounts, anon denial)
+npm run test:remote                 # RLS smoke tests against cloud as the 4 demo accounts (skipped by `npm test`)
 npm run cek:env                     # validate .env.local offline; prints variable names/status only, never values
 npm run seed:akun                   # create/update the 4 demo accounts (needs SUPABASE_SECRET_KEY, DEMO_PASSWORD)
 ```
