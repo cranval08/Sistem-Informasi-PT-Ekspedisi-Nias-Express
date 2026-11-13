@@ -15,10 +15,10 @@ function rutePublik(pathname: string) {
  * otorisasi peran tetap dilakukan di halaman (server) dan RLS.
  */
 export async function perbaruiSesi(request: NextRequest) {
-  const { url, anonKey } = envPublik();
+  const { url, publishableKey } = envPublik();
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

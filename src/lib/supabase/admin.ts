@@ -1,20 +1,17 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
-import { envPublik } from "./env";
+import { envPublik, kunciRahasiaServer } from "./env";
 
 /**
- * Klien service role — MELEWATI RLS. Hanya untuk operasi administratif
- * di server (mis. membuat akun Auth pengguna baru oleh Pemilik), dan
- * hanya setelah pemanggil diverifikasi berperan Pemilik.
- * Jangan pernah diimpor dari komponen klien.
+ * Klien dengan secret key (sb_secret_…) — MELEWATI RLS. Hanya untuk
+ * operasi administratif di server (mis. membuat akun Auth pengguna baru
+ * oleh Pemilik), dan hanya setelah pemanggil diverifikasi berperan Pemilik.
+ * `server-only` membuat build gagal bila modul ini diimpor dari komponen klien.
  */
 export function buatKlienAdmin() {
   const { url } = envPublik();
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY belum diisi di .env.local (khusus server).");
-  }
-  return createClient(url, serviceKey, {
+  const { kunci } = kunciRahasiaServer();
+  return createClient(url, kunci, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

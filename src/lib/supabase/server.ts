@@ -8,10 +8,12 @@ import { envPublik } from "./env";
  * Berjalan dengan sesi pengguna yang login — seluruh query tunduk pada RLS.
  */
 export async function buatKlienServer() {
-  const { url, anonKey } = envPublik();
+  // cookies() dulu: menandai render sebagai dinamis sehingga konfigurasi
+  // diperiksa saat request, bukan saat build (build tidak butuh .env.local).
   const cookieStore = await cookies();
+  const { url, publishableKey } = envPublik();
 
-  return createServerClient(url, anonKey, {
+  return createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

@@ -13,7 +13,8 @@
     "db:link": "supabase link",
     "db:push": "supabase db push",
     "seed:akun": "tsx scripts/seed-akun-demo.ts",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "cek:env": "tsx scripts/cek-env.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.6",

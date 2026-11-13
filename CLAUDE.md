@@ -18,10 +18,18 @@ npm run lint
 npm run build
 npm run check                       # typecheck + lint + test + build — run before declaring work done
 npm run db:push                     # apply supabase/migrations to the linked cloud project
-npm run seed:akun                   # create/update the 4 demo accounts (needs SUPABASE_SERVICE_ROLE_KEY, DEMO_PASSWORD)
+npm run cek:env                     # validate .env.local offline; prints variable names/status only, never values
+npm run seed:akun                   # create/update the 4 demo accounts (needs SUPABASE_SECRET_KEY, DEMO_PASSWORD)
 ```
 
-The Supabase project is **cloud only**: no local Supabase/Docker. Never commit `.env.local`. The service-role key is used only in `scripts/` and `src/lib/supabase/admin.ts` (`server-only`).
+The Supabase project is **cloud only**: no local Supabase/Docker. Never commit `.env.local`. Don't run `db:push` or `seed:akun` until the user confirms.
+
+**Keys** use the new Supabase format. Every read goes through `src/lib/supabase/env.ts`; never read `process.env` for keys anywhere else.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_…`) is the public key. The old name `NEXT_PUBLIC_SUPABASE_ANON_KEY` is still accepted as a fallback.
+- `SUPABASE_SECRET_KEY` (`sb_secret_…`) is server-only. The old name `SUPABASE_SERVICE_ROLE_KEY` is still accepted as a fallback.
+- The secret key is used only in `scripts/` and `src/lib/supabase/admin.ts` (`server-only`).
+- `env.ts` throws if a secret key appears in any `NEXT_PUBLIC_*` variable or if a publishable key is placed in the secret variable.
+- Error messages and logs may name variables, never print their values.
 
 ## Architecture
 

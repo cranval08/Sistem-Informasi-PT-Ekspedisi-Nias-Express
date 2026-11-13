@@ -22,10 +22,18 @@ cp .env.example .env.local   # lalu isi nilainya
 
 | Variabel | Lokasi di Supabase | Catatan |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Project Settings → API | Publik |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Project Settings → API (anon / publishable) | Publik, dibatasi RLS |
-| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API (service_role / secret) | **Rahasia, khusus server.** Jangan beri awalan `NEXT_PUBLIC_` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Project Settings → Data API (Project URL) | Publik |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Project Settings → API Keys → Publishable key (`sb_publishable_…`) | Publik, dibatasi RLS |
+| `SUPABASE_SECRET_KEY` | Project Settings → API Keys → Secret key (`sb_secret_…`) | **Rahasia, khusus server.** Jangan pernah beri awalan `NEXT_PUBLIC_` |
 | `DEMO_PASSWORD` | — | Password untuk semua akun demo (min. 8 karakter) |
+
+Nama variabel lama (`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) masih diterima sebagai cadangan; nama baru diutamakan bila keduanya terisi. Aplikasi menolak berjalan jika secret key ditemukan di variabel `NEXT_PUBLIC_*` atau jika publishable key salah diletakkan di `SUPABASE_SECRET_KEY`.
+
+Periksa konfigurasi tanpa menampilkan nilai kunci dan tanpa koneksi ke Supabase:
+
+```bash
+npm run cek:env
+```
 
 `.env.local` sudah masuk `.gitignore` dan tidak boleh di-commit.
 
@@ -81,7 +89,7 @@ Tes database (`tests/db/`) menjalankan seluruh migrasi di **PGlite** (Postgres d
 ## 6. Deployment
 
 1. Push repository ke GitHub, lalu import ke Vercel.
-2. Isi environment variables di Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (tanpa `DEMO_PASSWORD`).
+2. Isi environment variables di Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, dan `SUPABASE_SECRET_KEY` (tandai *Sensitive*; tanpa `DEMO_PASSWORD`).
 3. Di Supabase: Authentication → URL Configuration → isi **Site URL** dengan domain Vercel (HTTPS).
 4. Terapkan migrasi baru dengan `npm run db:push` sebelum deploy kode yang membutuhkannya.
 5. Aktifkan backup database sesuai paket Supabase.

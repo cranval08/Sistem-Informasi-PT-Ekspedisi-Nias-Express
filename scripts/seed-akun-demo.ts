@@ -1,7 +1,8 @@
 /**
  * Membuat / memperbarui 4 akun demo (satu per peran) di Supabase.
- * Idempoten — aman dijalankan ulang. Berjalan lokal dengan service role key
- * dari .env.local; key tersebut tidak pernah dikirim ke browser.
+ * Idempoten — aman dijalankan ulang. Berjalan lokal dengan secret key
+ * (sb_secret_…) dari .env.local; key tidak pernah dikirim ke browser
+ * dan nilainya tidak pernah dicetak.
  *
  *   npm run seed:akun
  *
@@ -9,21 +10,30 @@
  */
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import { envPublik, kunciRahasiaServer } from "../src/lib/supabase/env";
 
-config({ path: ".env.local" });
-
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const password = process.env.DEMO_PASSWORD;
+// quiet: dotenv tidak mencetak apa pun ke terminal.
+config({ path: ".env.local", quiet: true });
 
 function gagal(pesan: string): never {
   console.error(`✗ ${pesan}`);
   process.exit(1);
 }
 
-if (!url) gagal("NEXT_PUBLIC_SUPABASE_URL belum diisi di .env.local.");
-if (!serviceKey) gagal("SUPABASE_SERVICE_ROLE_KEY belum diisi di .env.local (khusus server, jangan diberi awalan NEXT_PUBLIC_).");
+let url: string;
+let kunci: string;
+let sumber: string;
+try {
+  ({ url } = envPublik(process.env));
+  ({ kunci, sumber } = kunciRahasiaServer(process.env));
+} catch (e) {
+  gagal((e as Error).message); // pesan hanya berisi nama variabel
+}
+
+const password = process.env.DEMO_PASSWORD;
 if (!password || password.length < 8) gagal("DEMO_PASSWORD belum diisi di .env.local (minimal 8 karakter).");
+
+console.log(`Memakai kunci server dari ${sumber}.`);
 
 const AKUN_DEMO = [
   { email: "demo.pemilik@example.com", nama: "Demo Pemilik", peran: "pemilik", telepon: "081000000001" },
@@ -32,7 +42,7 @@ const AKUN_DEMO = [
   { email: "demo.supir@example.com", nama: "Demo Supir", peran: "supir", telepon: "081000000004" },
 ] as const;
 
-const supabase = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+const supabase = createClient(url, kunci, { auth: { autoRefreshToken: false, persistSession: false } });
 
 async function cariUserId(email: string): Promise<string | null> {
   for (let page = 1; ; page++) {
@@ -78,4 +88,5 @@ async function main() {
   console.log("\nSelesai. Password semua akun demo = nilai DEMO_PASSWORD di .env.local.");
 }
 
-main().catch((e) => gagal(e instanceof Error ? e.message : JSON.stringify(e)));
+// Jangan serialisasi objek galat mentah (bisa memuat header permintaan).
+main().catch((e) => gagal(e instanceof Error ? e.message : "Galat tidak dikenal saat seed."));
