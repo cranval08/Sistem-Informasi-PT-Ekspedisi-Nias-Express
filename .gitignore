@@ -1,0 +1,27 @@
+# Rahasia & environment — JANGAN di-commit
+.env
+.env.*
+!.env.example
+
+# Dependencies & build
+node_modules/
+.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Supabase CLI lokal
+supabase/.temp/
+supabase/.branches/
+
+# Test & tooling
+playwright-report/
+test-results/
+.vercel
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
