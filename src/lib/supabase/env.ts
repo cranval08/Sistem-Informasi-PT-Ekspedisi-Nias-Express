@@ -46,12 +46,41 @@ function tolakRahasiaDiVariabelPublik(env: Env) {
 }
 
 /**
+ * Normalisasi URL proyek Supabase ke bentuk dasar `https://<ref>.supabase.co`.
+ * Akhiran `/rest/v1` (alamat "API URL" yang sering tersalin dari dashboard)
+ * dan garis miring di akhir dibuang karena klien menambahkan path sendiri.
+ * Path lain ditolak. Pesan galat tidak memuat nilai URL.
+ */
+export function normalisasiUrlSupabase(mentah: string): { url: string; dinormalisasi: boolean } {
+  let u: URL;
+  try {
+    u = new URL(mentah);
+  } catch {
+    throw new GalatKonfigurasi("NEXT_PUBLIC_SUPABASE_URL bukan URL yang valid. Contoh: https://<project-ref>.supabase.co");
+  }
+  if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") {
+    throw new GalatKonfigurasi("NEXT_PUBLIC_SUPABASE_URL harus memakai https://");
+  }
+  const path = u.pathname.replace(/\/+$/, "");
+  if (path !== "" && path !== "/rest/v1") {
+    throw new GalatKonfigurasi(
+      "NEXT_PUBLIC_SUPABASE_URL harus berupa URL dasar proyek tanpa path, contoh: https://<project-ref>.supabase.co",
+    );
+  }
+  if (u.search || u.hash) {
+    throw new GalatKonfigurasi("NEXT_PUBLIC_SUPABASE_URL tidak boleh memuat query (?…) atau fragmen (#…).");
+  }
+  return { url: u.origin, dinormalisasi: u.origin !== mentah };
+}
+
+/**
  * URL & kunci publik (aman di browser, dibatasi RLS).
  * Urutan: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY → NEXT_PUBLIC_SUPABASE_ANON_KEY (lama).
  */
 export function envPublik(env: Env = envPublikMentah()) {
   tolakRahasiaDiVariabelPublik(env);
-  const url = isi(env.NEXT_PUBLIC_SUPABASE_URL);
+  const urlMentah = isi(env.NEXT_PUBLIC_SUPABASE_URL);
+  const url = urlMentah ? normalisasiUrlSupabase(urlMentah).url : undefined;
   const publishableKey = isi(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ?? isi(env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   if (!url || !publishableKey) {
     throw new GalatKonfigurasi(

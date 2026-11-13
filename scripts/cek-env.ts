@@ -6,7 +6,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { config } from "dotenv";
-import { envPublik, kunciRahasiaServer } from "../src/lib/supabase/env";
+import { envPublik, kunciRahasiaServer, normalisasiUrlSupabase } from "../src/lib/supabase/env";
 
 config({ path: ".env.local", quiet: true });
 
@@ -23,8 +23,16 @@ const formatKunci = (v: string | undefined) =>
 
 try {
   const { url } = envPublik(process.env);
-  if (/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url)) ok("NEXT_PUBLIC_SUPABASE_URL terisi (https://<ref>.supabase.co)");
-  else salah("NEXT_PUBLIC_SUPABASE_URL tidak berformat https://<project-ref>.supabase.co");
+  const { dinormalisasi } = normalisasiUrlSupabase(process.env.NEXT_PUBLIC_SUPABASE_URL!.trim());
+  if (/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)) {
+    ok("NEXT_PUBLIC_SUPABASE_URL terisi (https://<ref>.supabase.co)");
+    if (dinormalisasi) {
+      console.log("  ! Nilai memuat akhiran seperti /rest/v1 atau '/'. Aplikasi menormalkannya otomatis,");
+      console.log("    tetapi sebaiknya ubah menjadi URL dasar: https://<project-ref>.supabase.co");
+    }
+  } else {
+    salah("NEXT_PUBLIC_SUPABASE_URL tidak berformat https://<project-ref>.supabase.co (domain kustom? hubungi pengembang)");
+  }
 
   const namaPublik = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
     ? "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"

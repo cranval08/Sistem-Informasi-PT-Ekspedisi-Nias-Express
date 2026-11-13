@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { envPublik, kunciRahasiaServer } from "./env";
+import { envPublik, kunciRahasiaServer, normalisasiUrlSupabase } from "./env";
 
 const URL = "https://contoh.supabase.co";
 const PUB = "sb_publishable_UJI_PUBLIK_123";
@@ -41,6 +41,32 @@ describe("envPublik", () => {
 
   it("galat bila belum lengkap", () => {
     expect(pesanGalat(() => envPublik({}))).toMatch(/belum lengkap/);
+  });
+});
+
+describe("normalisasiUrlSupabase", () => {
+  it.each([
+    ["https://abcdefghijklmnopqrst.supabase.co", false],
+    ["https://abcdefghijklmnopqrst.supabase.co/", true],
+    ["https://abcdefghijklmnopqrst.supabase.co/rest/v1", true],
+    ["https://abcdefghijklmnopqrst.supabase.co/rest/v1/", true],
+  ])("%s → URL dasar", (masuk, dinormalisasi) => {
+    expect(normalisasiUrlSupabase(masuk)).toEqual({ url: "https://abcdefghijklmnopqrst.supabase.co", dinormalisasi });
+  });
+
+  it("menolak path lain, http, dan URL tidak valid tanpa menampilkan nilainya", () => {
+    const rahasia = "https://abcdefghijklmnopqrst.supabase.co/auth/v1";
+    const pesan = pesanGalat(() => normalisasiUrlSupabase(rahasia));
+    expect(pesan).toMatch(/URL dasar proyek tanpa path/);
+    expect(pesan).not.toContain("abcdefghijklmnopqrst");
+    expect(pesanGalat(() => normalisasiUrlSupabase("http://x.supabase.co"))).toMatch(/https/);
+    expect(pesanGalat(() => normalisasiUrlSupabase("bukan url"))).toMatch(/bukan URL yang valid/);
+  });
+
+  it("envPublik memakai URL yang sudah dinormalisasi", () => {
+    expect(
+      envPublik({ NEXT_PUBLIC_SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co/rest/v1/", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PUB }).url,
+    ).toBe("https://abcdefghijklmnopqrst.supabase.co");
   });
 });
 
