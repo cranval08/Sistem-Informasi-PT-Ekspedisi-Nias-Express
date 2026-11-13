@@ -1,8 +1,9 @@
-"use client";
-
-import { AlertCircle, Construction, Inbox, RotateCw, type LucideIcon } from "lucide-react";
+// Sengaja TANPA "use client": komponen di sini menerima prop berupa
+// komponen ikon (fungsi) dari Server Component. Fungsi tidak dapat
+// dikirim ke Client Component. State yang butuh interaksi ada di
+// ./error-state.tsx.
+import { Construction, Inbox, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -34,34 +35,6 @@ export function EmptyState({
         {deskripsi && <p className="max-w-md text-sm text-muted-foreground">{deskripsi}</p>}
       </div>
       {aksi}
-    </div>
-  );
-}
-
-export function ErrorState({
-  judul = "Data gagal dimuat",
-  deskripsi = "Periksa koneksi internet Anda, lalu coba lagi.",
-  onCobaLagi,
-}: {
-  judul?: string;
-  deskripsi?: string;
-  onCobaLagi?: () => void;
-}) {
-  return (
-    <div
-      role="alert"
-      className="flex flex-col items-center justify-center gap-3 rounded-lg border border-danger/25 bg-danger-subtle px-6 py-10 text-center"
-    >
-      <AlertCircle className="size-6 text-danger" aria-hidden />
-      <div className="space-y-1">
-        <p className="font-medium text-danger">{judul}</p>
-        <p className="text-sm text-foreground/80">{deskripsi}</p>
-      </div>
-      {onCobaLagi && (
-        <Button variant="outline" size="sm" onClick={onCobaLagi}>
-          <RotateCw aria-hidden /> Coba lagi
-        </Button>
-      )}
     </div>
   );
 }

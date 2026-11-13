@@ -86,7 +86,10 @@ npm run lint
 npm run build
 npm run check                             # semua di atas berurutan
 npm run test:remote                       # uji RLS ke Supabase Cloud dengan akun demo (butuh seed)
+npm run test:halaman                      # buka semua halaman sebagai tiap peran (butuh `npm run dev` berjalan)
 ```
+
+`npm run test:halaman` login sebagai keempat akun demo, membuka setiap rute pada server yang sedang berjalan (default `http://localhost:3000`, ubah dengan `UJI_APP_URL`), dan memastikan halaman yang diizinkan merespons 200 sedangkan halaman lain dialihkan ke `/akses-ditolak`. Uji ini menangkap galat render server yang tidak terdeteksi oleh `npm run build`.
 
 `npm run test:remote` login sebagai keempat akun demo memakai publishable key dan memastikan RLS menolak akses yang tidak sah. Uji ini hanya membaca atau mencoba menulis yang harus ditolak, sehingga tidak mengubah data.
 

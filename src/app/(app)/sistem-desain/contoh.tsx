@@ -3,7 +3,8 @@
 import { Banknote, PackageCheck, ReceiptText, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { KpiCard } from "@/components/app/kpi-card";
-import { EmptyState, ErrorState, TabelSkeleton } from "@/components/app/states";
+import { ErrorState } from "@/components/app/error-state";
+import { EmptyState, TabelSkeleton } from "@/components/app/states";
 import { StatusBadge } from "@/components/app/status-badge";
 import {
   AlertDialog,

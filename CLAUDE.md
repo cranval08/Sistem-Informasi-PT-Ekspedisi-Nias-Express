@@ -20,6 +20,7 @@ npm run check                       # typecheck + lint + test + build — run be
 npm run db:push                     # apply supabase/migrations to the linked cloud project (CLI v3 needs --remote; script includes it)
 npm run verifikasi:remote           # read-only check of the cloud DB (tables, settings, demo accounts, anon denial)
 npm run test:remote                 # RLS smoke tests against cloud as the 4 demo accounts (skipped by `npm test`)
+npm run test:halaman                # with `npm run dev` running: every route × every role → 200 or /akses-ditolak (UJI_APP_URL to override port)
 npm run cek:env                     # validate .env.local offline; prints variable names/status only, never values
 npm run seed:akun                   # create/update the 4 demo accounts (needs SUPABASE_SECRET_KEY, DEMO_PASSWORD)
 ```
@@ -59,6 +60,11 @@ The Supabase project is **cloud only**: no local Supabase/Docker. Never commit `
 - `src/proxy.ts` (Next 16 renamed middleware to proxy) refreshes the Supabase session and redirects to `/login` when there is no session. It does an optimistic check only.
 - Next 16.4 has **Cache Components enabled**. Session-dependent segments use `export const instant = false` (see `(app)/layout.tsx`); otherwise reading cookies outside `<Suspense>` fails the build. Read `node_modules/next/dist/docs/` before using Next APIs, since they differ from older versions.
 - Status labels and badge tones live in `lib/domain/status.ts`. Rupiah, `Asia/Jakarta` dates, and phone normalization live in `lib/domain/format.ts`; phone normalization mirrors SQL `normalisasi_telepon`.
+- **Server → client boundary:**
+  - Server Components cannot pass functions to Client Components, and lucide icon components count as functions.
+  - Keep components that take an `ikon` prop or that are rendered from server pages free of `"use client"`; `components/app/states.tsx` is the example.
+  - Put interactive pieces in their own client file, as with `error-state.tsx`.
+  - `npm run build` does not render dynamic pages, so after UI changes run `npm run test:halaman` against `npm run dev`.
 - Design tokens are in `src/app/globals.css`: navy sidebar, blue primary, and semantic `success/warning/danger/info/neutral` with `-subtle` variants. Reusable components are in `components/app/`; `/sistem-desain` (Pemilik only) previews them.
 
 **DB tests:** `tests/db/harness.ts` boots PGlite, adds a shim for Supabase's `auth.uid()` and the `anon`/`authenticated` roles, applies all migrations, and loads a fixture. `sebagai(db, "supir", tx => …)` runs queries as a role. Cover every new RPC or rule there, mapped to the PRD §15 scenarios.
