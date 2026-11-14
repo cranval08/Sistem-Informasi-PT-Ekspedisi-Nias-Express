@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { tambahHari, tanggalOperasional } from "@/lib/domain/format";
+import { tanggalValid } from "@/lib/domain/skema";
 import { cn } from "@/lib/utils";
 
 export type ParamDaftar = Record<string, string | undefined>;
@@ -147,3 +149,71 @@ export function Paginasi({
 }
 
 export { kataKunciAman } from "@/lib/domain/format";
+
+// ---------------------------------------------------------------------
+// Rentang tanggal (filter ?dari=YYYY-MM-DD&sampai=YYYY-MM-DD&periode=…)
+// ---------------------------------------------------------------------
+export type Rentang = { dari: string; sampai: string; periode: string };
+
+const PRESET = [
+  { nilai: "hari_ini", label: "Hari ini" },
+  { nilai: "7_hari", label: "7 hari terakhir" },
+  { nilai: "bulan_ini", label: "Bulan ini" },
+] as const;
+
+/** Baca rentang dari searchParams; tanggal tidak valid → preset bawaan. */
+export function rentangDariParam(
+  sp: Record<string, string | string[] | undefined>,
+  zonaWaktu: string,
+  bawaan: (typeof PRESET)[number]["nilai"] = "hari_ini",
+): Rentang {
+  const hariIni = tanggalOperasional(zonaWaktu);
+  const dari = paramTunggal(sp.dari);
+  const sampai = paramTunggal(sp.sampai);
+  if (tanggalValid(dari) && tanggalValid(sampai) && dari <= sampai) return { dari, sampai, periode: "khusus" };
+  const periode = PRESET.some((p) => p.nilai === paramTunggal(sp.periode)) ? paramTunggal(sp.periode)! : bawaan;
+  if (periode === "7_hari") return { dari: tambahHari(hariIni, -6), sampai: hariIni, periode };
+  if (periode === "bulan_ini") return { dari: `${hariIni.slice(0, 8)}01`, sampai: hariIni, periode };
+  return { dari: hariIni, sampai: hariIni, periode: "hari_ini" };
+}
+
+/** Preset periode + form tanggal khusus (GET, bekerja tanpa JavaScript). */
+export function FilterRentang({ path, rentang, param }: { path: string; rentang: Rentang; param: ParamDaftar }) {
+  const tanpaRentang = { ...param, dari: undefined, sampai: undefined, periode: undefined, hal: undefined };
+  return (
+    <div className="flex flex-col gap-2 lg:flex-row lg:items-end">
+      <nav aria-label="Pilih periode" className="inline-flex flex-wrap self-start rounded-lg border bg-card p-0.5">
+        {PRESET.map((p) => {
+          const dipilih = rentang.periode === p.nilai;
+          return (
+            <Link
+              key={p.nilai}
+              href={hrefDengan(path, tanpaRentang, { periode: p.nilai })}
+              aria-current={dipilih ? "page" : undefined}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+                dipilih && "bg-primary text-primary-foreground hover:text-primary-foreground",
+              )}
+            >
+              {p.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <form action={path} method="get" className="flex flex-wrap items-end gap-2">
+        {Object.entries(tanpaRentang).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
+        <label className="space-y-1 text-xs text-muted-foreground">
+          <span className="block">Dari</span>
+          <Input type="date" name="dari" defaultValue={rentang.dari} className="h-9 w-40" required />
+        </label>
+        <label className="space-y-1 text-xs text-muted-foreground">
+          <span className="block">Sampai</span>
+          <Input type="date" name="sampai" defaultValue={rentang.sampai} className="h-9 w-40" required />
+        </label>
+        <Button type="submit" variant="outline" size="lg">
+          Terapkan
+        </Button>
+      </form>
+    </div>
+  );
+}

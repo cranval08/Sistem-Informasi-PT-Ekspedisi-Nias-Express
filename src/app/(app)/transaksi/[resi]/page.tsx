@@ -14,6 +14,7 @@ import { formatAngka, formatRupiah, formatTanggalWaktu } from "@/lib/domain/form
 import { relasiTunggal } from "@/lib/supabase/relasi";
 import { buatKlienServer } from "@/lib/supabase/server";
 import { ambilTransaksi } from "../data";
+import { TombolBatalPembayaran, TombolCatatPembayaran } from "../../pembayaran/form-pembayaran";
 import { TombolBatalTransaksi } from "./tombol-batal";
 
 // Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
@@ -174,7 +175,16 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
                           {b.catatan ? ` · ${b.catatan}` : ""}
                         </p>
                       </div>
-                      {b.status_pembayaran_record === "dibatalkan" && <BadgeNada nada="neutral" label="Dibatalkan" />}
+                      {b.status_pembayaran_record === "dibatalkan" ? (
+                        <div className="text-right">
+                          <BadgeNada nada="neutral" label="Dibatalkan" />
+                          {b.catatan_koreksi && <p className="mt-1 max-w-48 text-xs text-muted-foreground">{b.catatan_koreksi}</p>}
+                        </div>
+                      ) : (
+                        profil.peran === "pemilik" && (
+                          <TombolBatalPembayaran idPembayaran={b.id_pembayaran} ringkasan={`${formatRupiah(b.jumlah_bayar)} untuk ${t.noResi}`} />
+                        )
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -182,7 +192,23 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
                 <p className="text-sm text-muted-foreground">Belum ada pembayaran tercatat.</p>
               ))}
             {kantor && !t.void && sisa > 0 && (
-              <p className="text-xs text-muted-foreground">Pencatatan pembayaran lanjutan tersedia setelah modul Pembayaran (Fase 4) selesai.</p>
+              <TombolCatatPembayaran
+                ukuran="default"
+                tagihan={{
+                  noResi: t.noResi,
+                  pengirim: t.pengirim.nama,
+                  penerima: t.penerima.nama,
+                  total: t.totalBiaya,
+                  dibayar: t.totalDibayar,
+                  sisa,
+                  dibatalkan: false,
+                }}
+              />
+            )}
+            {profil.peran === "pemilik" && !t.void && t.statusKirim === "diterima_loket" && t.totalDibayar > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Untuk membatalkan transaksi ini, batalkan dulu seluruh pembayarannya.
+              </p>
             )}
           </CardContent>
         </Card>

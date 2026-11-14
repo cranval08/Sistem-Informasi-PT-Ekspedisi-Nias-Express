@@ -279,6 +279,30 @@ export const skemaBatalTransaksi = z.object({
 });
 
 // ---------------------------------------------------------------------
+// Pembayaran (PRD §7.9)
+// ---------------------------------------------------------------------
+export const skemaCatatPembayaran = z.object({
+  no_resi: z
+    .string({ error: "Nomor resi wajib diisi." })
+    .transform((s) => s.trim().toUpperCase())
+    .pipe(z.string().min(1, { error: "Nomor resi wajib diisi." }).max(40, { error: "Nomor resi tidak valid." })),
+  jumlah: rupiahPositif("Nominal pembayaran"),
+  catatan: teksOpsional("Catatan", 300),
+});
+
+export const skemaBatalPembayaran = z.object({
+  id_pembayaran: uuid,
+  alasan: teks("Alasan pembatalan", 300),
+});
+
+/** Tanggal YYYY-MM-DD yang valid (untuk filter rentang). */
+export function tanggalValid(s: string | undefined): s is string {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+// ---------------------------------------------------------------------
 // Utilitas
 // ---------------------------------------------------------------------
 export type GalatField = Record<string, string>;

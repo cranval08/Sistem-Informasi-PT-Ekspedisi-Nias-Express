@@ -62,3 +62,23 @@ export function tanggalOperasional(zonaWaktu: string = ZONA_WAKTU_DEFAULT, hari 
   const d = new Date(dari.getTime() + hari * 86_400_000);
   return new Intl.DateTimeFormat("en-CA", { timeZone: zonaWaktu, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
+
+/**
+ * Awal hari (00:00) sebuah tanggal kalender di zona operasional sebagai
+ * ISO dengan offset, mis. "2026-11-14T00:00:00+07:00" — untuk filter
+ * kolom timestamptz per tanggal operasional.
+ */
+export function awalHariIso(tanggal: string, zonaWaktu: string = ZONA_WAKTU_DEFAULT): string {
+  const bagian = new Intl.DateTimeFormat("en-US", { timeZone: zonaWaktu, timeZoneName: "longOffset" })
+    .formatToParts(new Date(`${tanggal}T12:00:00Z`))
+    .find((p) => p.type === "timeZoneName")?.value;
+  const offset = bagian && bagian !== "GMT" ? bagian.replace("GMT", "") : "+00:00";
+  return `${tanggal}T00:00:00${offset}`;
+}
+
+/** Tanggal YYYY-MM-DD ditambah `hari` (kalender, tanpa zona). */
+export function tambahHari(tanggal: string, hari: number): string {
+  const d = new Date(`${tanggal}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + hari);
+  return d.toISOString().slice(0, 10);
+}

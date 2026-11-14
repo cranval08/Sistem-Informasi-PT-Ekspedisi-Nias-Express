@@ -2,7 +2,7 @@
 
 Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pembayaran, manifes, armada, status pengiriman, dan dashboard. Kebutuhan lengkap ada di [`PRD.md`](PRD.md).
 
-> **Status: Fase 3 (transaksi & resi) selesai.** Fondasi (Fase 1) dan data inti (Fase 2) ditambah:
+> **Status: Fase 4 (pembayaran & kas) selesai.** Fondasi (Fase 1), data inti (Fase 2), serta transaksi & resi (Fase 3):
 >
 > - **Buat transaksi** (Pemilik, Admin Loket): pilih atau tambah pengirim/penerima, satu atau lebih baris barang dari master item, total biaya dan sisa pembayaran dihitung langsung, pembayaran awal opsional, peringatan kemungkinan transaksi ganda yang harus dikonfirmasi (tercatat di audit log).
 > - **Nomor resi** otomatis `PREFIKS-YYYYMMDD-NNNN`, berurutan per hari (Asia/Jakarta).
@@ -10,7 +10,11 @@ Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pemba
 > - **Cetak resi** lewat fungsi print browser: format A5 atau thermal 80/58 mm. Belum ada koneksi printer Bluetooth khusus.
 > - **Pembatalan transaksi** (Pemilik, wajib alasan) untuk transaksi yang belum dimuat dan belum ada pembayaran.
 >
-> Fase 2 tetap tersedia: pelanggan, jenis barang & tarif, armada, pengguna, pengaturan. Modul lain (pencatatan pembayaran lanjutan, manifes, pengambilan, laporan, audit log) masih berlabel *"dijadwalkan pada Fase N"*.
+> - **Pembayaran** (Pemilik, Admin Loket): catat pembayaran bertahap dari daftar pembayaran atau detail transaksi (nominal tidak boleh melebihi sisa, tombol Lunasi), status lunas otomatis, riwayat pembayaran dengan filter periode/resi/pelanggan/status.
+> - **Koreksi pembayaran** (Pemilik): pembayaran yang salah dibatalkan dengan alasan, tidak dihapus; total dibayar dihitung ulang.
+> - **Rekap kas**: penerimaan per tanggal dan per pencatat untuk hari ini, 7 hari, bulan ini, atau rentang khusus; pembayaran dibatalkan dilaporkan terpisah.
+>
+> Fase 2 tetap tersedia: pelanggan, jenis barang & tarif, armada, pengguna, pengaturan. Modul lain (manifes, pengambilan, laporan, audit log) masih berlabel *"dijadwalkan pada Fase N"*.
 
 ## Teknologi
 
