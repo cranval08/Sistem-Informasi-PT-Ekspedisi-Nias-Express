@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, History } from "lucide-react";
+import { ArrowLeft, History, Warehouse } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { RiwayatAudit } from "@/components/app/riwayat-audit";
-import { EmptyState, ModulBelumTersedia } from "@/components/app/states";
+import { MeterKapasitas } from "@/components/app/meter-kapasitas";
+import { EmptyState } from "@/components/app/states";
 import { BadgeNada, StatusBadge } from "@/components/app/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,8 +13,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { idValid } from "@/lib/aksi/hasil";
 import { ambilPengaturan, wajibAksesRute } from "@/lib/auth/sesi";
 import { formatAngka, formatTanggalWaktu } from "@/lib/domain/format";
+import { hitungKapasitas, jumlahGram } from "@/lib/domain/manifes";
 import { relasiTunggal } from "@/lib/supabase/relasi";
 import { buatKlienServer } from "@/lib/supabase/server";
+import { ambilKebijakanKapasitas } from "../../manifes/data";
 
 // Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
 export const instant = false;
@@ -28,7 +31,7 @@ export default async function HalamanDetailArmada(props: PageProps<"/armada/[id]
 
   const supabase = await buatKlienServer();
   const { zonaWaktu } = await ambilPengaturan();
-  const [{ data: a, error: galatArmada }, { data: riwayat, error: galatRiwayat }] = await Promise.all([
+  const [{ data: a, error: galatArmada }, { data: riwayat, error: galatRiwayat }, { data: manifes, error: galatManifes }, { ambang }] = await Promise.all([
     supabase
       .from("data_armada")
       .select("plat_nomor, jenis_unit, kapasitas_ton, status, waktu_status_diubah, is_active, catatan, waktu_dibuat, supir:data_pengguna(nama_lengkap, nomor_telepon)")
@@ -40,6 +43,17 @@ export default async function HalamanDetailArmada(props: PageProps<"/armada/[id]
       .eq("id_armada", id)
       .order("waktu_perubahan", { ascending: false })
       .limit(50),
+    supabase
+      .from("manifes")
+      .select(
+        `id_manifes, rute, status_manifes, waktu_dibuat,
+         supir:data_pengguna!manifes_id_supir_fkey(nama_lengkap),
+         detail:manifes_detail!manifes_detail_id_manifes_fkey(aktif, transaksi:data_transaksi!manifes_detail_no_resi_fkey(total_berat_kg))`,
+      )
+      .eq("id_armada", id)
+      .order("waktu_dibuat", { ascending: false })
+      .limit(10),
+    ambilKebijakanKapasitas(),
   ]);
   // Galat query bukan "tidak ditemukan": jangan disamarkan sebagai 404.
   if (galatArmada) throw new Error(`Armada gagal dimuat (${galatArmada.code ?? "tanpa kode"}).`);
@@ -90,10 +104,36 @@ export default async function HalamanDetailArmada(props: PageProps<"/armada/[id]
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Manifes & tonase yang ditugaskan</h2>
-        <ModulBelumTersedia
-          fase={5}
-          deskripsi="Daftar manifes aktif dan total tonase armada ini akan tersedia setelah modul manifes selesai."
-        />
+        <p className="text-sm text-muted-foreground">10 manifes terakhir. Muatan dihitung dari resi aktif pada masing-masing manifes.</p>
+        {galatManifes ? (
+          <EmptyState ikon={Warehouse} judul="Data manifes gagal dimuat" deskripsi="Muat ulang halaman untuk mencoba lagi." />
+        ) : !manifes?.length ? (
+          <EmptyState ikon={Warehouse} judul="Belum ada manifes untuk armada ini" />
+        ) : (
+          <ul className="divide-y rounded-lg border bg-card text-sm">
+            {manifes.map((m) => {
+              const kap = hitungKapasitas(
+                jumlahGram((m.detail ?? []).filter((d) => d.aktif).map((d) => relasiTunggal(d.transaksi)?.total_berat_kg ?? 0)),
+                a.kapasitas_ton,
+                ambang,
+              );
+              return (
+                <li key={m.id_manifes} className="grid gap-2 p-3 sm:grid-cols-[1fr_16rem] sm:items-center">
+                  <div>
+                    <Link href={`/manifes/${m.id_manifes}`} className="font-medium text-primary hover:underline">
+                      {m.rute}
+                    </Link>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <StatusBadge jenis="manifes" nilai={m.status_manifes} />
+                      {relasiTunggal(m.supir)?.nama_lengkap} · dibuat {formatTanggalWaktu(m.waktu_dibuat, zonaWaktu)}
+                    </div>
+                  </div>
+                  <MeterKapasitas hasil={kap} ambang={ambang} ringkas />
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <section className="space-y-3">

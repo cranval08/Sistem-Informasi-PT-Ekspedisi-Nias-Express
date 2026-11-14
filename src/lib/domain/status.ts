@@ -34,6 +34,11 @@ export const STATUS_MANIFES = {
   dibatalkan: { label: "Dibatalkan", nada: "danger" },
 } as const satisfies Record<string, Definisi>;
 
+export const STATUS_KENDALA = {
+  terbuka: { label: "Terbuka", nada: "danger" },
+  selesai: { label: "Selesai", nada: "success" },
+} as const satisfies Record<string, Definisi>;
+
 export const STATUS_AKUN = {
   aktif: { label: "Aktif", nada: "success" },
   nonaktif: { label: "Nonaktif", nada: "neutral" },
@@ -44,6 +49,7 @@ export const JENIS_STATUS = {
   bayar: STATUS_BAYAR,
   armada: STATUS_ARMADA,
   manifes: STATUS_MANIFES,
+  kendala: STATUS_KENDALA,
   akun: STATUS_AKUN,
 } as const;
 

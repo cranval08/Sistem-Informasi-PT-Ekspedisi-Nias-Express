@@ -29,6 +29,19 @@ export const KOLOM_AUDIT: Record<string, Record<string, { label: string; format?
     is_active: { label: "Keaktifan", format: aktif },
     catatan: { label: "Catatan" },
   },
+  // Detail dari RPC manifes (Fase 5).
+  manifes: {
+    plat_nomor: { label: "Armada" },
+    supir: { label: "Supir" },
+    rute: { label: "Rute" },
+    jumlah_resi: { label: "Jumlah resi" },
+    resi: { label: "Resi", format: (v) => (Array.isArray(v) ? v.join(", ") : teks(v)) },
+    no_resi: { label: "Resi" },
+    muatan_kg: { label: "Muatan (kg)", format: (v) => formatAngka(v as number) },
+    kapasitas_kg: { label: "Kapasitas (kg)", format: (v) => formatAngka(v as number) },
+    jenis: { label: "Jenis kendala" },
+    deskripsi: { label: "Uraian" },
+  },
 };
 
 export type Perubahan = { label: string; lama?: string; baru: string };
@@ -56,4 +69,21 @@ export const LABEL_AKSI_AUDIT: Record<string, string> = {
   ubah: "Diubah",
   hapus: "Dihapus",
   atur_ulang_password: "Password diatur ulang",
+  buat_transaksi: "Transaksi dibuat",
+  batalkan_transaksi: "Transaksi dibatalkan",
+  catat_pembayaran: "Pembayaran dicatat",
+  batalkan_pembayaran: "Pembayaran dibatalkan",
+  buat_manifes: "Manifes dibuat",
+  tambah_resi_manifes: "Resi ditambahkan",
+  lepas_resi_manifes: "Resi dilepas",
+  konfirmasi_muat: "Muat dikonfirmasi",
+  override_kapasitas: "Override kapasitas",
+  konfirmasi_berangkat: "Berangkat",
+  konfirmasi_tiba: "Tiba",
+  batalkan_manifes: "Manifes dibatalkan",
+  pindahkan_resi: "Resi dipindahkan",
+  override_belum_lunas: "Override belum lunas",
+  konfirmasi_pengambilan: "Pengambilan dikonfirmasi",
+  laporkan_kendala: "Kendala dilaporkan",
+  selesaikan_kendala: "Kendala diselesaikan",
 };

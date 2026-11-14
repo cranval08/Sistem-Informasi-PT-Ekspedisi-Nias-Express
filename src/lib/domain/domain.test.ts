@@ -31,8 +31,8 @@ describe("format", () => {
 });
 
 describe("peta akses peran", () => {
-  it("Supir hanya melihat Dashboard", () => {
-    expect(menuUntuk("supir").flatMap((g) => g.item)).toEqual(["dashboard"]);
+  it("Supir hanya melihat Dashboard dan Perjalanan Saya", () => {
+    expect(menuUntuk("supir").flatMap((g) => g.item)).toEqual(["dashboard", "perjalanan"]);
   });
 
   it("Supir tidak dapat membuka laporan keuangan; Admin tidak dapat membuka master tarif", () => {
@@ -43,8 +43,10 @@ describe("peta akses peran", () => {
     expect(bolehAkses(null, "dashboard")).toBe(false);
   });
 
-  it("Pemilik dapat mengakses seluruh rute", () => {
-    for (const k of Object.keys(RUTE) as KunciRute[]) expect(bolehAkses("pemilik", k)).toBe(true);
+  it("Pemilik dapat mengakses seluruh rute kecuali halaman pribadi Supir", () => {
+    // "Perjalanan Saya" menampilkan penugasan milik akun Supir yang login; Pemilik
+    // melihat seluruh perjalanan di Daftar Manifes.
+    for (const k of Object.keys(RUTE) as KunciRute[]) expect(bolehAkses("pemilik", k)).toBe(k !== "perjalanan");
   });
 
   it("setiap rute ada di menu tepat satu kali", () => {

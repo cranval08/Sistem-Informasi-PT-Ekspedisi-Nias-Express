@@ -80,6 +80,43 @@ describe.skipIf(!aktif)("RLS di Supabase Cloud (akun demo)", () => {
     expect(pemilik.data?.length).toBe(1);
   });
 
+  it("Supir & Admin tidak dapat membuat manifes; Gudang tidak dapat menulis manifes langsung (Fase 5)", async () => {
+    for (const peran of ["supir", "admin_loket"] as Peran[]) {
+      const { error } = await klien[peran].rpc("buat_manifes", {
+        p_id_armada: "00000000-0000-0000-0000-000000000000",
+        p_id_supir: "00000000-0000-0000-0000-000000000000",
+        p_rute: "UJI DITOLAK",
+      });
+      expect(error?.code, peran).toBe("42501");
+    }
+    const { error } = await klien.staf_gudang
+      .from("manifes")
+      .update({ status_manifes: "berangkat" })
+      .eq("id_manifes", "00000000-0000-0000-0000-000000000000");
+    expect(error?.code).toBe("42501");
+  });
+
+  it("Supir tidak dapat membaca transaksi; data perjalanan hanya lewat RPC tanpa kolom finansial", async () => {
+    const t = await klien.supir.from("data_transaksi").select("no_resi").limit(1);
+    expect(t.data).toEqual([]);
+    const { data, error } = await klien.supir.rpc("perjalanan_saya");
+    expect(error).toBeNull();
+    for (const baris of (data ?? []) as Record<string, unknown>[]) {
+      expect(Object.keys(baris).some((k) => /biaya|bayar|telepon|pengirim|penerima/.test(k))).toBe(false);
+    }
+  });
+
+  it("anon: lacak_resi hanya mengembalikan resi, status, waktu", async () => {
+    const { url, publishableKey } = envPublik(process.env);
+    const anon = createClient(url, publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: resi } = await klien.admin_loket.from("data_transaksi").select("no_resi").limit(1).maybeSingle();
+    const { data, error } = await anon.rpc("lacak_resi", { p_no_resi: resi?.no_resi ?? "NX-19000101-0001" });
+    expect(error).toBeNull();
+    for (const baris of (data ?? []) as Record<string, unknown>[]) expect(Object.keys(baris).sort()).toEqual(["no_resi", "status", "waktu"]);
+    const ditolak = await anon.rpc("perjalanan_saya");
+    expect(ditolak.error).not.toBeNull();
+  });
+
   it("Admin tidak dapat mengubah pengaturan", async () => {
     const { data } = await klien.admin_loket.from("pengaturan").update({ mode_demo: false }).eq("id", 1).select();
     expect(data).toEqual([]);

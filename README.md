@@ -2,19 +2,18 @@
 
 Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pembayaran, manifes, armada, status pengiriman, dan dashboard. Kebutuhan lengkap ada di [`PRD.md`](PRD.md).
 
-> **Status: Fase 4 (pembayaran & kas) selesai.** Fondasi (Fase 1), data inti (Fase 2), serta transaksi & resi (Fase 3):
+> **Status: Fase 5 (operasional logistik) selesai.** Fondasi (Fase 1), data inti (Fase 2), transaksi & resi (Fase 3), pembayaran & kas (Fase 4):
 >
-> - **Buat transaksi** (Pemilik, Admin Loket): pilih atau tambah pengirim/penerima, satu atau lebih baris barang dari master item, total biaya dan sisa pembayaran dihitung langsung, pembayaran awal opsional, peringatan kemungkinan transaksi ganda yang harus dikonfirmasi (tercatat di audit log).
-> - **Nomor resi** otomatis `PREFIKS-YYYYMMDD-NNNN`, berurutan per hari (Asia/Jakarta).
-> - **Daftar & detail transaksi** (Pemilik, Admin Loket, Staf Gudang): cari resi/nama/telepon, filter periode, status bayar, dan status kirim; detail rincian barang, pembayaran, riwayat status.
-> - **Cetak resi** lewat fungsi print browser: format A5 atau thermal 80/58 mm. Belum ada koneksi printer Bluetooth khusus.
-> - **Pembatalan transaksi** (Pemilik, wajib alasan) untuk transaksi yang belum dimuat dan belum ada pembayaran.
+> - **Manifes** (Pemilik, Staf Gudang): buat perjalanan per armada (Siaga, tanpa perjalanan aktif) dengan supir dan rute teks bebas; tambah resi lunas yang masih Diterima Loket; total tonase, kapasitas, dan persentase utilisasi dihitung otomatis; konfirmasi muat → berangkat → tiba.
+> - **Kapasitas**: muatan sama dengan kapasitas boleh diproses; melebihi kapasitas memblokir konfirmasi muat & keberangkatan. Override hanya Pemilik, hanya bila diizinkan di Pengaturan, wajib alasan, tercatat di audit log. Ambang peringatan (%) diambil dari Pengaturan — bila belum diisi, ditampilkan "perlu dilengkapi".
+> - **Barang belum lunas** tidak dapat dimuat kecuali override resmi Pemilik (detail transaksi; kebijakan di Pengaturan).
+> - **Koreksi sebelum berangkat**: lepas resi (Draf), pindahkan resi ke manifes Draf armada cadangan, atau batalkan manifes (wajib alasan); status resi yang sudah Dimuat dikembalikan ke Diterima Loket dan tercatat di riwayat.
+> - **Status armada** Perjalanan diatur otomatis oleh manifes (berangkat → Perjalanan, tiba → Siaga).
+> - **Perjalanan Saya** (Supir): penugasan, rute, ringkasan muatan tanpa data pelanggan/nominal, tombol berangkat/tiba, laporan kendala. Status diperbarui petugas — tanpa GPS.
+> - **Pengambilan** (Pemilik, Admin Loket, Staf Gudang): cari/pindai resi, cocokkan penerima, centang verifikasi identitas (wajib), konfirmasi → Sudah Diambil dengan waktu & petugas tercatat.
+> - **Pelacakan publik** `/lacak` (tanpa login, nonaktif sampai diaktifkan Pemilik di Pengaturan): hanya nomor resi, status, dan waktu.
 >
-> - **Pembayaran** (Pemilik, Admin Loket): catat pembayaran bertahap dari daftar pembayaran atau detail transaksi (nominal tidak boleh melebihi sisa, tombol Lunasi), status lunas otomatis, riwayat pembayaran dengan filter periode/resi/pelanggan/status.
-> - **Koreksi pembayaran** (Pemilik): pembayaran yang salah dibatalkan dengan alasan, tidak dihapus; total dibayar dihitung ulang.
-> - **Rekap kas**: penerimaan per tanggal dan per pencatat untuk hari ini, 7 hari, bulan ini, atau rentang khusus; pembayaran dibatalkan dilaporkan terpisah.
->
-> Fase 2 tetap tersedia: pelanggan, jenis barang & tarif, armada, pengguna, pengaturan. Modul lain (manifes, pengambilan, laporan, audit log) masih berlabel *"dijadwalkan pada Fase N"*.
+> Modul transaksi, pembayaran, pelanggan, item & tarif, armada, pengguna, dan pengaturan dari fase sebelumnya tetap tersedia. Dashboard KPI dan laporan (Fase 6) masih berlabel *"dijadwalkan pada Fase 6"*.
 
 ## Teknologi
 

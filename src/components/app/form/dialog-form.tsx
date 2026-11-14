@@ -39,7 +39,7 @@ const PESAN_PUTUS = "Tidak dapat terhubung ke server. Periksa koneksi internet l
  * Tidak memakai `<form action>` agar isian tidak di-reset saat server
  * menolak (React me-reset form setelah action selesai).
  */
-export function useKirimForm(aksi: Aksi, skema?: z.ZodType, onBerhasil?: () => void) {
+export function useKirimForm(aksi: Aksi, skema?: z.ZodType, onBerhasil?: (data: unknown) => void) {
   const [galat, setGalat] = useState<GalatField>({});
   const [pesan, setPesan] = useState<string>();
   const [sedangProses, mulai] = useTransition();
@@ -70,7 +70,7 @@ export function useKirimForm(aksi: Aksi, skema?: z.ZodType, onBerhasil?: () => v
       if (h.ok) {
         toast.success(h.pesan ?? "Data tersimpan.");
         bersihkan();
-        onBerhasil?.();
+        onBerhasil?.(h.data);
       } else {
         setGalat(h.galat ?? {});
         setPesan(h.pesan);

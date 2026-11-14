@@ -76,6 +76,8 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
     ["/transaksi/NX-19000101-0001", "transaksi"],
     ["/transaksi/NX-19000101-0001/cetak", "transaksi"],
     ["/transaksi/bukan-resi", "transaksi"],
+    ["/manifes/00000000-0000-4000-8000-000000000000", "manifes"],
+    ["/manifes/bukan-uuid", "manifes"],
   ];
   for (const peran of Object.keys(AKUN) as Peran[]) {
     it.each(DINAMIS)(`${peran}: %s tidak dikenal`, async (path, rute) => {
@@ -84,6 +86,48 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
       else expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
     });
   }
+  // Manifes sungguhan (bila ada di cloud): detail tampil untuk peran yang diizinkan.
+  it("detail manifes yang ada tampil untuk peran yang diizinkan", async () => {
+    const { url, publishableKey } = envPublik(process.env);
+    const klien = createServerClient(url, publishableKey, { cookies: { getAll: () => [], setAll: () => {} } });
+    await klien.auth.signInWithPassword({ email: AKUN.staf_gudang, password: process.env.DEMO_PASSWORD! });
+    const { data, error } = await klien.from("manifes").select("id_manifes").limit(1).maybeSingle();
+    expect(error).toBeNull();
+    if (!data) return; // belum ada manifes di cloud
+    for (const peran of Object.keys(AKUN) as Peran[]) {
+      const res = await fetch(`${APP}/manifes/${data.id_manifes}`, { headers: { cookie: cookie[peran] }, redirect: "manual" });
+      if (bolehAkses(peran, "manifes")) {
+        expect(res.status, peran).toBe(200);
+        expect(await res.text()).not.toMatch(/gagal dimuat/);
+      } else {
+        expect(res.headers.get("location"), peran).toMatch(/\/akses-ditolak$/);
+      }
+    }
+  });
+
+  // Pelacakan publik: dapat dibuka tanpa login dan tidak menampilkan data pribadi/finansial.
+  it("/lacak tanpa login → 200, tanpa nama pelanggan maupun nominal", async () => {
+    const { url, publishableKey } = envPublik(process.env);
+    const klien = createServerClient(url, publishableKey, { cookies: { getAll: () => [], setAll: () => {} } });
+    await klien.auth.signInWithPassword({ email: AKUN.admin_loket, password: process.env.DEMO_PASSWORD! });
+    const { data } = await klien
+      .from("data_transaksi")
+      .select("no_resi, total_biaya, penerima:data_pelanggan!data_transaksi_id_penerima_fkey(nama, telepon)")
+      .limit(1)
+      .maybeSingle();
+    for (const path of ["/lacak", `/lacak?resi=${data?.no_resi ?? "NX-19000101-0001"}`]) {
+      const res = await fetch(APP + path, { redirect: "manual" });
+      expect(res.status, path).toBe(200);
+      const html = await res.text();
+      expect(html).not.toContain("Application error");
+      const p = data?.penerima as { nama?: string; telepon?: string } | { nama?: string; telepon?: string }[] | undefined;
+      const pen = Array.isArray(p) ? p[0] : p;
+      if (pen?.nama) expect(html).not.toContain(pen.nama);
+      if (pen?.telepon) expect(html).not.toContain(pen.telepon);
+      expect(html).not.toMatch(/Rp\s?\d/);
+    }
+  });
+
   // Data sungguhan: rute detail harus merender data yang ada (bukan 404).
   it("detail & cetak resi yang ada tampil untuk peran yang diizinkan", async () => {
     const { url, publishableKey } = envPublik(process.env);

@@ -217,6 +217,7 @@ export const skemaPengaturan = z.object({
   izinkan_override_kapasitas: centang,
   izinkan_override_belum_lunas: centang,
   mode_demo: centang,
+  pelacakan_publik_aktif: centang,
 });
 
 // ---------------------------------------------------------------------
@@ -293,6 +294,73 @@ export const skemaCatatPembayaran = z.object({
 export const skemaBatalPembayaran = z.object({
   id_pembayaran: uuid,
   alasan: teks("Alasan pembatalan", 300),
+});
+
+// ---------------------------------------------------------------------
+// Manifes, pengiriman & pengambilan (PRD §7.11–§7.13)
+// ---------------------------------------------------------------------
+const noResi = z
+  .string({ error: "Nomor resi wajib diisi." })
+  .transform((s) => s.trim().toUpperCase())
+  .pipe(z.string().min(1, { error: "Nomor resi wajib diisi." }).max(40, { error: "Nomor resi tidak valid." }));
+
+export const skemaManifes = z.object({
+  id_armada: z.uuid({ error: "Pilih armada." }),
+  id_supir: z.uuid({ error: "Pilih supir." }),
+  rute: teks("Rute", 200),
+  catatan: teksOpsional("Catatan", 500),
+});
+
+export const skemaIdManifes = z.object({ id_manifes: uuid });
+
+export const skemaKonfirmasiMuat = z.object({
+  id_manifes: uuid,
+  alasan_override: teksOpsional("Alasan override", 300),
+});
+
+export const skemaTiba = z.object({
+  id_manifes: uuid,
+  catatan: teksOpsional("Catatan", 300),
+});
+
+export const skemaBatalManifes = z.object({
+  id_manifes: uuid,
+  alasan: teks("Alasan pembatalan", 300),
+});
+
+export const skemaLepasResi = z.object({ id_manifes: uuid, no_resi: noResi });
+
+export const skemaPindahResi = z.object({
+  no_resi: noResi,
+  id_manifes_tujuan: z.uuid({ error: "Pilih manifes tujuan." }),
+  alasan: teks("Alasan pemindahan", 300),
+});
+
+export const skemaKendala = z.object({
+  id_manifes: uuid,
+  jenis: z.enum(["kerusakan", "keterlambatan", "lainnya"], { error: "Pilih jenis kendala." }),
+  deskripsi: teks("Uraian kendala", 1000),
+});
+
+export const skemaSelesaikanKendala = z.object({
+  id_kendala: uuid,
+  catatan: teksOpsional("Catatan", 300),
+});
+
+export const skemaOverrideBelumLunas = z.object({
+  no_resi: noResi,
+  alasan: teks("Alasan override", 300),
+});
+
+export const skemaPengambilan = z.object({
+  no_resi: noResi,
+  // Checkbox wajib dicentang: memindai/mengetik resi saja tidak membuktikan identitas.
+  identitas_terverifikasi: z
+    .string()
+    .optional()
+    .refine((v) => v === "on", { error: "Centang konfirmasi bahwa identitas penerima sudah diperiksa." })
+    .transform(() => true as const),
+  catatan: teksOpsional("Catatan", 300),
 });
 
 /** Tanggal YYYY-MM-DD yang valid (untuk filter rentang). */

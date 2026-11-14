@@ -24,7 +24,12 @@ export const ambilTransaksi = cache(async (resiMentah: string) => {
     .from("data_transaksi")
     .select(
       `no_resi, waktu_transaksi, status_kirim, total_berat_kg, total_biaya, total_dibayar, status_bayar, catatan,
-       status_void, void_reason, void_pada, waktu_diambil,
+       status_void, void_reason, void_pada, waktu_diambil, catatan_pengambilan,
+       override_belum_lunas, override_belum_lunas_alasan,
+       petugasAmbil:data_pengguna!data_transaksi_diambil_diproses_oleh_fkey(nama_lengkap),
+       pengoverride:data_pengguna!data_transaksi_override_belum_lunas_oleh_fkey(nama_lengkap),
+       manifes:manifes_detail!manifes_detail_no_resi_fkey(aktif, ditambahkan_pada,
+         m:manifes!manifes_detail_id_manifes_fkey(id_manifes, status_manifes, rute, armada:data_armada!manifes_id_armada_fkey(plat_nomor))),
        pengirim:data_pelanggan!data_transaksi_id_pengirim_fkey(nama, telepon),
        penerima:data_pelanggan!data_transaksi_id_penerima_fkey(nama, telepon),
        pencatat:data_pengguna!data_transaksi_id_pengguna_fkey(nama_lengkap),
@@ -49,7 +54,30 @@ export const ambilTransaksi = cache(async (resiMentah: string) => {
     void: t.status_void
       ? { alasan: t.void_reason as string, pada: t.void_pada as string, oleh: relasiTunggal(t.pembatal)?.nama_lengkap ?? "—" }
       : null,
-    waktuDiambil: t.waktu_diambil as string | null,
+    pengambilan: t.waktu_diambil
+      ? {
+          waktu: t.waktu_diambil as string,
+          petugas: relasiTunggal(t.petugasAmbil)?.nama_lengkap ?? "—",
+          catatan: t.catatan_pengambilan as string | null,
+        }
+      : null,
+    overrideBelumLunas: t.override_belum_lunas
+      ? { alasan: t.override_belum_lunas_alasan as string, oleh: relasiTunggal(t.pengoverride)?.nama_lengkap ?? "—" }
+      : null,
+    /** Manifes yang memuat resi ini (aktif dulu, lalu riwayat pindah/batal). */
+    manifes: (t.manifes ?? [])
+      .map((d) => {
+        const m = relasiTunggal(d.m);
+        return {
+          id: m?.id_manifes as string,
+          status: (m?.status_manifes ?? "") as string,
+          rute: (m?.rute ?? "") as string,
+          plat: relasiTunggal(m?.armada)?.plat_nomor ?? "—",
+          aktif: d.aktif as boolean,
+          ditambahkan: d.ditambahkan_pada as string,
+        };
+      })
+      .sort((a, b) => Number(b.aktif) - Number(a.aktif) || b.ditambahkan.localeCompare(a.ditambahkan)),
     pengirim: relasiTunggal(t.pengirim) ?? { nama: "—", telepon: "—" },
     penerima: relasiTunggal(t.penerima) ?? { nama: "—", telepon: "—" },
     pencatat: relasiTunggal(t.pencatat)?.nama_lengkap ?? "—",

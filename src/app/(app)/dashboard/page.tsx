@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardList, Settings, Truck } from "lucide-react";
+import { ClipboardList, Route, Settings, Truck } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState, ModulBelumTersedia } from "@/components/app/states";
 import { StatusBadge } from "@/components/app/status-badge";
@@ -87,6 +87,46 @@ async function PengaturanPerluDilengkapi() {
   );
 }
 
+/** Perjalanan aktif Supir (RPC definer, tanpa data finansial). */
+async function PerjalananAktif() {
+  const supabase = await buatKlienServer();
+  const { data, error } = await supabase.rpc("perjalanan_saya");
+  if (error) return <EmptyState ikon={Route} judul="Data perjalanan gagal dimuat" deskripsi="Muat ulang halaman untuk mencoba lagi." />;
+  type Ringkas = { id_manifes: string; plat_nomor: string; rute: string; status_manifes: string; jumlah_resi: number; total_berat_kg: number };
+  const aktif = ((data ?? []) as Ringkas[]).filter((p) => ["draft", "dimuat", "berangkat"].includes(p.status_manifes));
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Route className="size-4" aria-hidden /> Perjalanan aktif
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {aktif.length ? (
+          aktif.map((p) => (
+            <div key={p.id_manifes} className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium">
+                  {p.plat_nomor} · {p.rute}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {p.jumlah_resi} resi · {formatAngka(p.total_berat_kg)} kg
+                </p>
+              </div>
+              <StatusBadge jenis="manifes" nilai={p.status_manifes} />
+            </div>
+          ))
+        ) : (
+          <p className="text-muted-foreground">Tidak ada perjalanan aktif saat ini.</p>
+        )}
+        <Button asChild variant={aktif.length ? "default" : "outline"}>
+          <Link href="/perjalanan">Buka Perjalanan Saya</Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 /** Supir: hanya armada yang ditugaskan kepadanya (dibatasi RLS). */
 async function ArmadaSaya() {
   const supabase = await buatKlienServer();
@@ -136,10 +176,7 @@ async function ArmadaSaya() {
           </Card>
         ))}
       </div>
-      <ModulBelumTersedia
-        fase={5}
-        deskripsi="Informasi perjalanan, ringkasan muatan, tombol pembaruan status, dan form laporan kendala akan tersedia di Fase 5."
-      />
+      <PerjalananAktif />
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <ClipboardList className="size-3.5" aria-hidden /> Nominal pembayaran dan laporan kas tidak ditampilkan untuk peran
         Supir.

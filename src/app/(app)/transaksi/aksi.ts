@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { berhasil, gagal, gagalAkses, gagalDb, gagalValidasi, type HasilAksi } from "@/lib/aksi/hasil";
 import { profilUntukAksi } from "@/lib/auth/sesi";
 import { kataKunciAman, normalisasiTelepon } from "@/lib/domain/format";
-import { dataForm, skemaBatalTransaksi, skemaPelanggan, skemaTransaksi, type InputTransaksi } from "@/lib/domain/skema";
+import { dataForm, skemaBatalTransaksi, skemaOverrideBelumLunas, skemaPelanggan, skemaTransaksi, type InputTransaksi } from "@/lib/domain/skema";
 import { buatKlienServer } from "@/lib/supabase/server";
 
 const PERAN_LOKET = ["pemilik", "admin_loket"] as const;
@@ -122,4 +122,21 @@ export async function batalkanTransaksi(formData: FormData): Promise<HasilAksi> 
   if (error) return gagalDb(error);
   refresh();
   return berhasil(`Transaksi ${v.data.no_resi} dibatalkan.`);
+}
+
+/**
+ * Override pemuatan barang belum lunas (PRD §7.8, §11 langkah 9). Hanya
+ * Pemilik, hanya bila diizinkan di Pengaturan, wajib alasan — ditegakkan
+ * juga oleh RPC override_belum_lunas dan tercatat di audit log.
+ */
+export async function overrideBelumLunas(formData: FormData): Promise<HasilAksi> {
+  if (!(await profilUntukAksi("pemilik"))) return gagalAkses();
+  const v = skemaOverrideBelumLunas.safeParse(dataForm(formData));
+  if (!v.success) return gagalValidasi(v.error);
+
+  const supabase = await buatKlienServer();
+  const { error } = await supabase.rpc("override_belum_lunas", { p_no_resi: v.data.no_resi, p_alasan: v.data.alasan });
+  if (error) return gagalDb(error);
+  refresh();
+  return berhasil(`Override tercatat. Resi ${v.data.no_resi} dapat dimuat walau belum lunas.`);
 }

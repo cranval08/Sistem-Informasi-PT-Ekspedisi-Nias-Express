@@ -18,7 +18,7 @@ export default async function HalamanPengaturan() {
   const { data, error } = await supabase
     .from("pengaturan")
     .select(
-      "nama_perusahaan, alamat, telepon, prefiks_resi, ambang_peringatan_kapasitas_persen, izinkan_override_kapasitas, izinkan_override_belum_lunas, mode_demo, updated_at",
+      "nama_perusahaan, alamat, telepon, prefiks_resi, ambang_peringatan_kapasitas_persen, izinkan_override_kapasitas, izinkan_override_belum_lunas, mode_demo, pelacakan_publik_aktif, updated_at",
     )
     .eq("id", 1)
     .maybeSingle();

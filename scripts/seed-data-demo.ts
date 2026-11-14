@@ -1,5 +1,6 @@
 /**
- * Mengisi Data Demo Fase 2 (pelanggan, jenis barang & tarif contoh,
+ * Mengisi Data Demo (pelanggan, jenis barang & tarif contoh, transaksi,
+ * manifes Draf,
  * armada contoh) ke Supabase. Idempoten: baris yang sudah ada (telepon /
  * nama item / plat sama) dilewati, bukan ditimpa — perubahan yang dibuat
  * Pemilik lewat aplikasi tidak hilang.
@@ -87,6 +88,7 @@ async function main() {
   if (!supir) console.log("  (akun demo.supir@example.com belum ada — jalankan npm run seed:akun lalu tugaskan supir lewat menu Armada)");
 
   await seedTransaksi();
+  await seedManifes();
 
   console.log("\nSelesai. Semua data berlabel [Demo]; tarif & kapasitas hanya contoh dan wajib diganti Pemilik.");
 }
@@ -155,6 +157,66 @@ async function seedTransaksi() {
   await admin.auth.signOut();
   console.log(`✓ Transaksi demo   : ${dibuat} dibuat`);
   for (const d of dilewati) console.log(`  dilewati: ${d}`);
+}
+
+/**
+ * Manifes demo (Fase 5): satu manifes Draf untuk armada demo pertama dengan
+ * supir demo, berisi resi demo yang lunas dan belum dimuat. Dibuat sebagai
+ * Demo Gudang lewat RPC (aturan & audit sama dengan aplikasi). Dibiarkan
+ * Draf agar alur muat → berangkat → tiba → pengambilan dapat dicoba manual.
+ * Dilewati bila armada demo sudah pernah punya manifes.
+ */
+async function seedManifes() {
+  const password = process.env.DEMO_PASSWORD;
+  if (!password) {
+    console.log("• Manifes demo     : dilewati (DEMO_PASSWORD belum diisi)");
+    return;
+  }
+  const { data: armada } = await supabase
+    .from("data_armada")
+    .select("id_armada, id_supir, status, is_active")
+    .eq("plat_nomor", ARMADA_DEMO[0].plat_nomor)
+    .maybeSingle();
+  if (!armada?.is_active || armada.status !== "siaga" || !armada.id_supir) {
+    console.log(`• Manifes demo     : dilewati (armada ${ARMADA_DEMO[0].plat_nomor} tidak aktif/Siaga atau belum punya supir)`);
+    return;
+  }
+  const { count } = await supabase.from("manifes").select("*", { count: "exact", head: true }).eq("id_armada", armada.id_armada);
+  if (count) {
+    console.log(`• Manifes demo     : dilewati (${ARMADA_DEMO[0].plat_nomor} sudah memiliki ${count} manifes)`);
+    return;
+  }
+
+  // Resi demo lunas, masih Diterima Loket, belum di manifes aktif.
+  const { data: pel } = await supabase.from("data_pelanggan").select("id_pelanggan").in("telepon", PELANGGAN_DEMO.map((p) => p.telepon));
+  const { data: kandidat } = await supabase
+    .from("data_transaksi")
+    .select("no_resi, md:manifes_detail!manifes_detail_no_resi_fkey(aktif)")
+    .in("id_pengirim", (pel ?? []).map((p) => p.id_pelanggan))
+    .eq("status_kirim", "diterima_loket")
+    .eq("status_bayar", "lunas")
+    .eq("status_void", false);
+  const resi = (kandidat ?? []).filter((t) => !(t.md ?? []).some((d) => d.aktif)).map((t) => t.no_resi);
+
+  const gudang = createClient(url, publishableKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const { error: eLogin } = await gudang.auth.signInWithPassword({ email: "demo.gudang@example.com", password });
+  if (eLogin) {
+    console.log("• Manifes demo     : dilewati (login demo.gudang@example.com gagal — jalankan npm run seed:akun)");
+    return;
+  }
+  const { data: id, error } = await gudang.rpc("buat_manifes", {
+    p_id_armada: armada.id_armada,
+    p_id_supir: armada.id_supir,
+    p_rute: "[Demo] Gunungsitoli → Teluk Dalam",
+    p_catatan: "Data Demo — rute contoh.",
+  });
+  if (error) throw error;
+  if (resi.length) {
+    const { error: e2 } = await gudang.rpc("tambah_resi_manifes", { p_id_manifes: id, p_daftar_resi: resi });
+    if (e2) throw e2;
+  }
+  await gudang.auth.signOut();
+  console.log(`✓ Manifes demo     : 1 Draf dibuat untuk ${ARMADA_DEMO[0].plat_nomor} dengan ${resi.length} resi lunas`);
 }
 
 main().catch((e) => gagal(e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Galat tidak dikenal saat seed."));

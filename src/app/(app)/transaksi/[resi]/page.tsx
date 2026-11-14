@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Ban, History, Printer, Wallet } from "lucide-react";
+import { ArrowLeft, Ban, History, Printer, Truck, UserCheck, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { BadgeNada, StatusBadge } from "@/components/app/status-badge";
@@ -15,7 +15,9 @@ import { relasiTunggal } from "@/lib/supabase/relasi";
 import { buatKlienServer } from "@/lib/supabase/server";
 import { ambilTransaksi } from "../data";
 import { TombolBatalPembayaran, TombolCatatPembayaran } from "../../pembayaran/form-pembayaran";
+import { ambilKebijakanKapasitas } from "../../manifes/data";
 import { TombolBatalTransaksi } from "./tombol-batal";
+import { TombolOverrideBelumLunas } from "./tombol-override";
 
 // Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
 export const instant = false;
@@ -33,7 +35,7 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
 
   const kantor = profil.peran === "pemilik" || profil.peran === "admin_loket";
   const supabase = await buatKlienServer();
-  const { zonaWaktu } = await ambilPengaturan();
+  const [{ zonaWaktu }, kebijakan] = await Promise.all([ambilPengaturan(), ambilKebijakanKapasitas()]);
   const [{ data: riwayat }, { data: bayar }] = await Promise.all([
     supabase
       .from("riwayat_status_pengiriman")
@@ -52,6 +54,8 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
 
   const sisa = t.totalBiaya - t.totalDibayar;
   const bolehBatal = profil.peran === "pemilik" && !t.void && t.statusKirim === "diterima_loket" && t.totalDibayar === 0;
+  const perluOverride = !t.void && t.statusBayar !== "lunas" && !t.overrideBelumLunas && t.statusKirim === "diterima_loket";
+  const manifesAktif = t.manifes.find((m) => m.aktif);
 
   return (
     <>
@@ -98,6 +102,74 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
         <KartuPihak judul="Pengirim" p={t.pengirim} />
         <KartuPihak judul="Penerima" p={t.penerima} />
       </div>
+
+      {!t.void && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="size-4" aria-hidden /> Pemuatan & pengambilan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {manifesAktif ? (
+              <p>
+                Manifes{" "}
+                <Link href={`/manifes/${manifesAktif.id}`} className="font-medium text-primary hover:underline">
+                  {manifesAktif.plat} · {manifesAktif.rute}
+                </Link>{" "}
+                <span className="ml-1 inline-block align-middle">
+                  <StatusBadge jenis="manifes" nilai={manifesAktif.status} />
+                </span>
+              </p>
+            ) : (
+              t.statusKirim === "diterima_loket" && <p className="text-muted-foreground">Belum dimuat ke manifes.</p>
+            )}
+            {t.manifes.some((m) => !m.aktif) && (
+              <p className="text-xs text-muted-foreground">
+                Sebelumnya di:{" "}
+                {t.manifes
+                  .filter((m) => !m.aktif)
+                  .map((m) => `${m.plat} (${m.status === "dibatalkan" ? "dibatalkan" : "dipindahkan"})`)
+                  .join(", ")}
+              </p>
+            )}
+            {t.overrideBelumLunas && (
+              <p className="rounded-lg border border-warning/30 bg-warning-subtle/60 p-2.5">
+                <span className="font-medium">Override belum lunas</span> oleh {t.overrideBelumLunas.oleh}: {t.overrideBelumLunas.alasan}
+              </p>
+            )}
+            {perluOverride && (
+              <div className="flex flex-col gap-2 rounded-lg border p-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <p>Barang belum lunas tidak dapat dimuat ke truk kecuali ada override resmi dari Pemilik.</p>
+                {profil.peran === "pemilik" &&
+                  (kebijakan.overrideBelumLunas ? (
+                    <TombolOverrideBelumLunas noResi={t.noResi} sisa={formatRupiah(sisa)} />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Override dinonaktifkan di Pengaturan.</p>
+                  ))}
+              </div>
+            )}
+            {t.pengambilan ? (
+              <p className="flex items-start gap-2">
+                <UserCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                <span>
+                  Diambil {formatTanggalWaktu(t.pengambilan.waktu, zonaWaktu)} · diproses {t.pengambilan.petugas} · identitas penerima
+                  diverifikasi
+                  {t.pengambilan.catatan ? ` · ${t.pengambilan.catatan}` : ""}
+                </span>
+              </p>
+            ) : (
+              t.statusKirim === "tiba" && (
+                <Button asChild variant="outline">
+                  <Link href={`/pengambilan?resi=${t.noResi}`}>
+                    <UserCheck aria-hidden /> Proses Pengambilan
+                  </Link>
+                </Button>
+              )
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

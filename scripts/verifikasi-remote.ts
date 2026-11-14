@@ -23,7 +23,7 @@ async function main() {
     console.log(`  ${error ? "✗" : "✓"} ${t.padEnd(26)} ${error ? error.code + " " + error.message : count + " baris"}`);
   }
 
-  const { data: s } = await admin.from("pengaturan").select("nama_perusahaan, prefiks_resi, mode_demo, ambang_peringatan_kapasitas_persen").single();
+  const { data: s } = await admin.from("pengaturan").select("nama_perusahaan, prefiks_resi, mode_demo, ambang_peringatan_kapasitas_persen, pelacakan_publik_aktif").single();
   console.log("\nPengaturan:", s);
 
   const { data: p } = await admin.from("data_pengguna").select("email, peran, is_active").order("peran");

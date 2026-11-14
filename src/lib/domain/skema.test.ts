@@ -14,6 +14,11 @@ import {
   skemaPengaturan,
   skemaPenggunaBaru,
   skemaStatusArmada,
+  skemaKendala,
+  skemaManifes,
+  skemaOverrideBelumLunas,
+  skemaPengambilan,
+  skemaPindahResi,
 } from "./skema";
 
 const galat = (r: { success: boolean; error?: { issues: { path: PropertyKey[]; message: string }[] } }) =>
@@ -109,6 +114,7 @@ describe("pengaturan", () => {
       izinkan_override_kapasitas: false,
       izinkan_override_belum_lunas: false,
       mode_demo: false,
+      pelacakan_publik_aktif: false,
     });
     expect(skemaPengaturan.parse({ ...dasar, ambang_peringatan_kapasitas_persen: "92,5", mode_demo: "on" })).toMatchObject({
       ambang_peringatan_kapasitas_persen: 92.5,
@@ -146,5 +152,27 @@ describe("ringkasan audit", () => {
     expect(ringkasPerubahan("data_item", "ubah", { tarif_per_satuan: { lama: 1000, baru: 1500 } })).toEqual([
       { label: "Tarif", lama: formatRupiah(1000), baru: formatRupiah(1500) },
     ]);
+  });
+});
+
+describe("manifes & pengambilan (Fase 5)", () => {
+  it("pengambilan tanpa centang verifikasi identitas ditolak (PRD §15 Pengiriman 3)", () => {
+    const r = skemaPengambilan.safeParse({ no_resi: "nx-20261114-0001" });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0].path).toEqual(["identitas_terverifikasi"]);
+    expect(skemaPengambilan.parse({ no_resi: " nx-20261114-0001 ", identitas_terverifikasi: "on", catatan: "" })).toEqual({
+      no_resi: "NX-20261114-0001",
+      identitas_terverifikasi: true,
+      catatan: null,
+    });
+  });
+
+  it("rute wajib; override muat & pemindahan wajib alasan", () => {
+    const id = "00000000-0000-4000-8000-000000000001";
+    expect(skemaManifes.safeParse({ id_armada: id, id_supir: id, rute: "   " }).success).toBe(false);
+    expect(skemaManifes.parse({ id_armada: id, id_supir: id, rute: " Gunungsitoli  →  Teluk Dalam " }).rute).toBe("Gunungsitoli → Teluk Dalam");
+    expect(skemaPindahResi.safeParse({ no_resi: "NX-1", id_manifes_tujuan: id, alasan: "" }).success).toBe(false);
+    expect(skemaOverrideBelumLunas.safeParse({ no_resi: "NX-1", alasan: " " }).success).toBe(false);
+    expect(skemaKendala.safeParse({ id_manifes: id, jenis: "banjir", deskripsi: "x" }).success).toBe(false);
   });
 });

@@ -18,6 +18,7 @@ export type NilaiPengaturan = {
   izinkan_override_kapasitas: boolean;
   izinkan_override_belum_lunas: boolean;
   mode_demo: boolean;
+  pelacakan_publik_aktif: boolean;
 };
 
 export function FormPengaturan({ awal, contohResi }: { awal: NilaiPengaturan; contohResi: string }) {
@@ -105,6 +106,25 @@ export function FormPengaturan({ awal, contohResi }: { awal: NilaiPengaturan; co
             label="Izinkan Pemilik meng-override pemuatan barang yang belum lunas"
             keterangan="Bila tidak dicentang, barang belum lunas tidak dapat dimuat ke truk."
             defaultChecked={awal.izinkan_override_belum_lunas}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Pelacakan publik</CardTitle>
+          <CardDescription>
+            Halaman <span className="font-mono">/lacak</span> dapat dibuka tanpa login dan hanya menampilkan nomor resi, status pengiriman, dan
+            waktu pembaruan — tanpa nama, telepon, biaya, atau armada.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <KotakCentang
+            id="pelacakan_publik_aktif"
+            name="pelacakan_publik_aktif"
+            label="Aktifkan halaman pelacakan resi untuk pelanggan"
+            keterangan="Nomor resi berurutan per hari sehingga dapat ditebak; yang terlihat hanya status dan waktu."
+            defaultChecked={awal.pelacakan_publik_aktif}
           />
         </CardContent>
       </Card>
