@@ -89,6 +89,7 @@ export async function simpanTransaksi(input: InputTransaksi): Promise<HasilSimpa
     p_bayar_awal: t.bayar_awal,
     p_catatan: t.catatan ?? undefined,
     p_konfirmasi_duplikat: t.konfirmasi_duplikat,
+    p_alasan_belum_bayar: t.alasan_belum_bayar ?? undefined,
   });
 
   if (error?.code === "NX001") {

@@ -13,6 +13,8 @@ Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pemba
 > - **Pengambilan** (Pemilik, Admin Loket, Staf Gudang): cari/pindai resi, cocokkan penerima, centang verifikasi identitas (wajib), pastikan lunas (barang belum lunas tidak dapat diserahkan), konfirmasi → Sudah Diambil dengan waktu & petugas tercatat.
 > - **Pelacakan publik** `/lacak` (tanpa login, nonaktif sampai diaktifkan Pemilik di Pengaturan): hanya nomor resi, status, dan waktu.
 >
+> - **Pembayaran (penyempurnaan Fase 4)**: pembayaran awal Rp0 tidak masuk riwayat pembayaran/rekap kas, tetapi alasannya wajib diisi dan tampil di detail transaksi serta audit log. Pembatalan pembayaran: Pemilik untuk semua pembayaran; Admin Loket hanya untuk pembayaran yang dicatatnya sendiri pada hari yang sama.
+>
 > Modul transaksi, pembayaran, pelanggan, item & tarif, armada, pengguna, dan pengaturan dari fase sebelumnya tetap tersedia. Dashboard KPI dan laporan (Fase 6) masih berlabel *"dijadwalkan pada Fase 6"*.
 
 ## Teknologi

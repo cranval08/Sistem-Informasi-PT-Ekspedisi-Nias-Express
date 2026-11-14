@@ -16,8 +16,8 @@ beforeAll(async () => {
 
 /** Transaksi baru sebesar berat × Rp1.000, dengan pembayaran awal opsional. */
 async function transaksi(tx: Transaction, beratKg: number, bayarAwal = 0) {
-  const { rows } = await tx.query<{ r: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, null, true) r", [
-    PENGIRIM, PENERIMA, JSON.stringify([{ id_item: ITEM_KG, berat_kg: beratKg }]), bayarAwal,
+  const { rows } = await tx.query<{ r: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, null, true, $5) r", [
+    PENGIRIM, PENERIMA, JSON.stringify([{ id_item: ITEM_KG, berat_kg: beratKg }]), bayarAwal, "Bayar di loket tujuan",
   ]);
   return rows[0].r;
 }
@@ -124,11 +124,10 @@ describe("hak akses (PRD §15 Pembayaran 5)", () => {
 });
 
 describe("pembatalan / koreksi pembayaran", () => {
-  it("hanya Pemilik, wajib alasan; total dihitung ulang; tidak dapat dibatalkan dua kali; tercatat di audit", async () => {
+  it("Pemilik membatalkan pembayaran siapa pun; wajib alasan; total dihitung ulang; tidak dapat dibatalkan dua kali; tercatat di audit", async () => {
     const r = await coba("admin", async (tx) => {
       const resi = await transaksi(tx, 10);
       const id = await bayar(tx, resi, 10000);
-      await gagal(tx, () => tx.query("select public.batalkan_pembayaran($1, 'Salah nominal')", [id]), /hak akses/);
       await sebagaiPengguna(tx, ID.pemilik);
       await gagal(tx, () => tx.query("select public.batalkan_pembayaran($1, '  ')", [id]), /Alasan pembatalan pembayaran wajib/);
       await tx.query("select public.batalkan_pembayaran($1, 'Salah nominal')", [id]);
@@ -146,6 +145,51 @@ describe("pembatalan / koreksi pembayaran", () => {
       { aksi: "catat_pembayaran", alasan: null },
       { aksi: "batalkan_pembayaran", alasan: "Salah nominal" },
     ]);
+  });
+
+  it("Admin Loket hanya membatalkan pembayaran yang dicatatnya sendiri pada hari yang sama (keputusan Fase 4 no. 3)", async () => {
+    const r = await coba("admin", async (tx) => {
+      const resi = await transaksi(tx, 30);
+      const milikSendiri = await bayar(tx, resi, 10000);
+      await sebagaiPengguna(tx, ID.pemilik);
+      const milikPemilik = await bayar(tx, resi, 5000);
+      // Pembayaran admin kemarin (ditulis langsung sebagai pemilik basis data).
+      await tx.query("reset role");
+      await tx.query("alter table public.pembayaran disable trigger pembayaran_sebelum");
+      const kemarin = (await tx.query<{ id: string }>(
+        `insert into public.pembayaran (no_resi, jumlah_bayar, id_pengguna_pencatat, waktu_bayar) values ($1, 100, '${ID.admin}', now() - interval '1 day') returning id_pembayaran id`,
+        [resi],
+      )).rows[0].id;
+      await tx.query("alter table public.pembayaran enable trigger pembayaran_sebelum");
+      await tx.query("set local role authenticated");
+
+      await sebagaiPengguna(tx, ID.admin);
+      const batal = (id: string) => tx.query("select public.batalkan_pembayaran($1, 'Salah ketik nominal')", [id]);
+      await gagal(tx, () => batal(milikPemilik), /hanya dapat membatalkan pembayaran yang dicatatnya sendiri/);
+      await gagal(tx, () => batal(kemarin), /hanya dapat membatalkan pembayaran pada hari yang sama/);
+      await gagal(tx, () => tx.query("select public.batalkan_pembayaran($1, ' ')", [milikSendiri]), /Alasan pembatalan pembayaran wajib/);
+      await batal(milikSendiri);
+      const setelah = await status(tx, resi);
+
+      // Peran lain tetap ditolak; Pemilik tetap dapat membatalkan pembayaran admin dari hari sebelumnya.
+      for (const siapa of [ID.gudang, ID.supir]) {
+        await sebagaiPengguna(tx, siapa);
+        await gagal(tx, () => batal(milikPemilik), /hak akses/);
+      }
+      await sebagaiPengguna(tx, ID.pemilik);
+      await batal(kemarin);
+      const b = (await tx.query<{ id_pembayaran: string; status_pembayaran_record: string; dibatalkan_oleh: string | null }>(
+        "select id_pembayaran, status_pembayaran_record, dibatalkan_oleh from public.pembayaran where no_resi = $1", [resi],
+      )).rows;
+      const audit = (await tx.query("select id_pengguna, detail_perubahan->>'peran_pembatal' peran from public.audit_log where aksi = 'batalkan_pembayaran' and entitas_id = $1", [milikSendiri])).rows;
+      return { setelah, b, audit, id: { milikSendiri, milikPemilik, kemarin } };
+    });
+    expect(r.setelah).toMatchObject({ total_dibayar: 5100, status_bayar: "belum_lunas" });
+    const per = Object.fromEntries(r.b.map((x) => [x.id_pembayaran, x]));
+    expect(per[r.id.milikSendiri]).toMatchObject({ status_pembayaran_record: "dibatalkan", dibatalkan_oleh: ID.admin });
+    expect(per[r.id.milikPemilik]).toMatchObject({ status_pembayaran_record: "valid", dibatalkan_oleh: null });
+    expect(per[r.id.kemarin]).toMatchObject({ status_pembayaran_record: "dibatalkan", dibatalkan_oleh: ID.pemilik });
+    expect(r.audit).toEqual([{ id_pengguna: ID.admin, peran: "admin_loket" }]);
   });
 });
 

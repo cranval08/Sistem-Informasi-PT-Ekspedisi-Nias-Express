@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { rentangDariParam } from "@/components/app/daftar";
 import { awalHariIso, tambahHari, tanggalOperasional } from "./format";
+import { bolehBatalkanPembayaran } from "./pembayaran";
 import { skemaBatalPembayaran, skemaCatatPembayaran, tanggalValid } from "./skema";
 
 describe("skema pembayaran", () => {
@@ -15,6 +16,30 @@ describe("skema pembayaran", () => {
 
   it("pembatalan wajib alasan", () => {
     expect(skemaBatalPembayaran.safeParse({ id_pembayaran: "30000000-0000-4000-8000-000000000001", alasan: "  " }).success).toBe(false);
+  });
+});
+
+describe("bolehBatalkanPembayaran (keputusan Fase 4 no. 3)", () => {
+  const ADMIN = { id: "a", peran: "admin_loket" as const };
+  // 14 Nov 2026 23.30 WIB = 16.30 UTC; 15 Nov 00.10 WIB = 17.10 UTC.
+  const malam = "2026-11-14T16:30:00Z";
+  const b = (pencatat: string, waktu = malam, status = "valid") => ({ id_pengguna_pencatat: pencatat, waktu_bayar: waktu, status_pembayaran_record: status });
+
+  it("Pemilik boleh membatalkan semua pembayaran valid", () => {
+    expect(bolehBatalkanPembayaran({ id: "p", peran: "pemilik" }, b("a", "2020-01-01T00:00:00Z"), "Asia/Jakarta")).toBe(true);
+    expect(bolehBatalkanPembayaran({ id: "p", peran: "pemilik" }, b("a", malam, "dibatalkan"), "Asia/Jakarta")).toBe(false);
+  });
+
+  it("Admin Loket hanya miliknya sendiri pada tanggal operasional yang sama (bukan 24 jam)", () => {
+    expect(bolehBatalkanPembayaran(ADMIN, b("a"), "Asia/Jakarta", new Date("2026-11-14T16:59:00Z"))).toBe(true);
+    expect(bolehBatalkanPembayaran(ADMIN, b("a"), "Asia/Jakarta", new Date("2026-11-14T17:10:00Z"))).toBe(false);
+    expect(bolehBatalkanPembayaran(ADMIN, b("lain"), "Asia/Jakarta", new Date("2026-11-14T16:40:00Z"))).toBe(false);
+  });
+
+  it("Staf Gudang & Supir tidak pernah", () => {
+    for (const peran of ["staf_gudang", "supir"] as const) {
+      expect(bolehBatalkanPembayaran({ id: "a", peran }, b("a"), "Asia/Jakarta", new Date(malam))).toBe(false);
+    }
   });
 });
 

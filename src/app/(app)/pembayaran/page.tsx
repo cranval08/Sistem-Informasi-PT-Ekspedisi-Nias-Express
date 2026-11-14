@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/app/states";
 import { BadgeNada } from "@/components/app/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ambilPengaturan, wajibAksesRute } from "@/lib/auth/sesi";
+import { bolehBatalkanPembayaran } from "@/lib/domain/pembayaran";
 import { awalHariIso, formatRupiah, formatTanggal, formatTanggalWaktu, normalisasiTelepon, tambahHari } from "@/lib/domain/format";
 import { relasiTunggal } from "@/lib/supabase/relasi";
 import { buatKlienServer } from "@/lib/supabase/server";
@@ -32,6 +33,7 @@ const UKURAN = 25;
 export default async function HalamanPembayaran(props: PageProps<"/pembayaran">) {
   const profil = await wajibAksesRute("pembayaran");
   const pemilik = profil.peran === "pemilik";
+  const bolehAksi = pemilik || profil.peran === "admin_loket";
   const sp = await props.searchParams;
   const { zonaWaktu } = await ambilPengaturan();
   const rentang = rentangDariParam(sp, zonaWaktu, "7_hari");
@@ -43,7 +45,7 @@ export default async function HalamanPembayaran(props: PageProps<"/pembayaran">)
   let kueri = supabase
     .from("pembayaran")
     .select(
-      `id_pembayaran, no_resi, waktu_bayar, jumlah_bayar, status_pembayaran_record, catatan, catatan_koreksi,
+      `id_pembayaran, no_resi, waktu_bayar, jumlah_bayar, status_pembayaran_record, catatan, catatan_koreksi, id_pengguna_pencatat,
        pencatat:data_pengguna!pembayaran_id_pengguna_pencatat_fkey(nama_lengkap),
        transaksi:data_transaksi(pengirim:data_pelanggan!data_transaksi_id_pengirim_fkey(nama))`,
       { count: "exact" },
@@ -128,7 +130,7 @@ export default async function HalamanPembayaran(props: PageProps<"/pembayaran">)
                   <TableHead className="text-right">Jumlah</TableHead>
                   <TableHead>Pencatat</TableHead>
                   <TableHead>Status</TableHead>
-                  {pemilik && <TableHead className="text-right">Aksi</TableHead>}
+                  {bolehAksi && <TableHead className="text-right">Aksi</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,9 +160,9 @@ export default async function HalamanPembayaran(props: PageProps<"/pembayaran">)
                           <BadgeNada nada="success" label="Valid" />
                         )}
                       </TableCell>
-                      {pemilik && (
+                      {bolehAksi && (
                         <TableCell className="text-right">
-                          {!batal && (
+                          {bolehBatalkanPembayaran(profil, b, zonaWaktu) && (
                             <TombolBatalPembayaran idPembayaran={b.id_pembayaran} ringkasan={`${formatRupiah(b.jumlah_bayar)} untuk ${b.no_resi}`} />
                           )}
                         </TableCell>

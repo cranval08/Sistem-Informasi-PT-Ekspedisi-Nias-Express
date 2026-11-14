@@ -50,16 +50,26 @@ describe("skema transaksi", () => {
     id_pengirim: "10000000-0000-4000-8000-000000000001",
     id_penerima: "10000000-0000-4000-8000-000000000002",
     detail: [{ id_item: "20000000-0000-4000-8000-000000000001", berat_kg: "1,5", koli: "" }],
+    alasan_belum_bayar: "Bayar di tujuan",
   };
 
   it("menormalkan berat, bayar kosong = 0, koli kosong = null", () => {
-    expect(skemaTransaksi.parse(dasar)).toMatchObject({
+    expect(skemaTransaksi.parse({ ...dasar, alasan_belum_bayar: "  Bayar di tujuan " })).toMatchObject({
       detail: [{ berat_kg: "1.5", koli: null }],
       bayar_awal: 0,
       catatan: null,
+      alasan_belum_bayar: "Bayar di tujuan",
       konfirmasi_duplikat: false,
     });
     expect(skemaTransaksi.parse({ ...dasar, bayar_awal: "15.000" }).bayar_awal).toBe(15000);
+  });
+
+  it("pembayaran awal Rp0 wajib beralasan; alasan dibuang bila ada pembayaran awal", () => {
+    const r = skemaTransaksi.safeParse({ ...dasar, bayar_awal: "", alasan_belum_bayar: "  " });
+    expect(r.error?.issues.map((i) => [i.path.join("."), i.message])).toEqual([
+      ["alasan_belum_bayar", "Alasan belum bayar wajib diisi bila pembayaran awal Rp0."],
+    ]);
+    expect(skemaTransaksi.parse({ ...dasar, bayar_awal: "1000", alasan_belum_bayar: "x" }).alasan_belum_bayar).toBeNull();
   });
 
   it("pengirim kosong, tanpa barang, berat salah, bayar negatif → ditolak", () => {

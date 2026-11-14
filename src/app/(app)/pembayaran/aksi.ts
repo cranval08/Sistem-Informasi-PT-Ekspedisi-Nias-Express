@@ -72,8 +72,12 @@ export async function catatPembayaran(formData: FormData): Promise<HasilAksi> {
   return berhasil(`Pembayaran ${formatRupiah(v.data.jumlah)} untuk ${v.data.no_resi} tercatat.`);
 }
 
+/**
+ * Pemilik: semua pembayaran. Admin Loket: hanya pembayaran yang dicatatnya
+ * sendiri hari ini — ditegakkan RPC batalkan_pembayaran (migrasi 0900).
+ */
 export async function batalkanPembayaran(formData: FormData): Promise<HasilAksi> {
-  if (!(await profilUntukAksi("pemilik"))) return gagalAkses();
+  if (!(await profilUntukAksi("pemilik", "admin_loket"))) return gagalAkses();
   const v = skemaBatalPembayaran.safeParse(dataForm(formData));
   if (!v.success) return gagalValidasi(v.error);
 

@@ -150,6 +150,7 @@ async function seedTransaksi() {
       p_bayar_awal: t.bayar === "lunas" ? total : t.bayar,
       p_catatan: "Data Demo",
       p_konfirmasi_duplikat: true,
+      p_alasan_belum_bayar: "alasanBelumBayar" in t ? t.alasanBelumBayar : undefined,
     });
     if (error) throw error;
     dibuat++;

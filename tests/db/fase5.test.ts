@@ -47,8 +47,8 @@ async function gagal(tx: Transaction, aksi: () => Promise<unknown>, pola: RegExp
 async function transaksi(tx: Transaction, beratKg: number | string, lunas = true) {
   await jadi(tx, "admin");
   const biaya = Math.round(Number(beratKg) * 1000);
-  const { rows } = await tx.query<{ r: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, null, true) r", [
-    PENGIRIM, PENERIMA, JSON.stringify([{ id_item: ITEM_KG, berat_kg: String(beratKg) }]), lunas ? biaya : 0,
+  const { rows } = await tx.query<{ r: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, null, true, $5) r", [
+    PENGIRIM, PENERIMA, JSON.stringify([{ id_item: ITEM_KG, berat_kg: String(beratKg) }]), lunas ? biaya : 0, "Bayar di loket tujuan",
   ]);
   return rows[0].r;
 }

@@ -23,15 +23,20 @@ beforeAll(async () => {
 
 type Detail = { id_item: string; berat_kg: number | string; koli?: number | string | null };
 
-function buat(tx: Transaction, detail: Detail[], opsi: { bayar?: number; konfirmasi?: boolean; pengirim?: string | null; catatan?: string } = {}) {
+function buat(
+  tx: Transaction,
+  detail: Detail[],
+  opsi: { bayar?: number; konfirmasi?: boolean; pengirim?: string | null; catatan?: string; alasan?: string | null } = {},
+) {
   return tx
-    .query<{ resi: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, $5, $6) resi", [
+    .query<{ resi: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, $5, $6, $7) resi", [
       opsi.pengirim === undefined ? PENGIRIM : opsi.pengirim,
       PENERIMA,
       JSON.stringify(detail),
       opsi.bayar ?? 0,
       opsi.catatan ?? null,
       opsi.konfirmasi ?? false,
+      opsi.alasan === undefined ? "Bayar di loket tujuan" : opsi.alasan,
     ])
     .then((r) => r.rows[0].resi);
 }
@@ -96,6 +101,35 @@ describe("pembuatan transaksi (PRD §15 Transaksi 1)", () => {
     expect(log).toHaveLength(1);
     expect(log[0]).toMatchObject({ aksi: "buat_transaksi", id_pengguna: ID.pemilik });
     expect(log[0].detail_perubahan).toMatchObject({ total_biaya: 2000, total_berat_kg: 2, bayar_awal: 0, duplikat_dikonfirmasi: null });
+  });
+
+  it("pembayaran awal Rp0 wajib beralasan; alasan tersimpan & teraudit tanpa baris pembayaran (keputusan Fase 4 no. 2)", async () => {
+    const r = await coba("admin", async (tx) => {
+      const satu = [{ id_item: ITEM_KG, berat_kg: 2 }];
+      await tx.query("savepoint s");
+      await gagal(tx, buat(tx, satu, { alasan: null }), /Alasan belum bayar wajib diisi bila pembayaran awal Rp0/);
+      await tx.query("savepoint s");
+      await gagal(tx, buat(tx, satu, { alasan: "   " }), /Alasan belum bayar wajib/);
+      await tx.query("savepoint s");
+      await gagal(tx, buat(tx, satu, { alasan: "x".repeat(301) }), /maksimal 300 karakter/);
+      const nol = await buat(tx, satu, { alasan: "  Pelanggan tetap, bayar saat ambil  " });
+      // Alasan diabaikan bila ada pembayaran awal (termasuk sebagian).
+      const sebagian = await buat(tx, [{ id_item: ITEM_KG, berat_kg: 3 }], { bayar: 1000, alasan: "tidak relevan" });
+      const t = (await tx.query("select no_resi, alasan_belum_bayar from public.data_transaksi where no_resi = any($1) order by no_resi", [[nol, sebagian]])).rows;
+      const bayar = (await tx.query("select no_resi from public.pembayaran where no_resi = $1", [nol])).rows;
+      await tx.query("select set_config('request.jwt.claim.sub', $1, true)", [ID.pemilik]);
+      const audit = (await tx.query("select detail_perubahan->>'alasan_belum_bayar' a from public.audit_log where aksi = 'buat_transaksi' and entitas_id = $1", [nol])).rows;
+      // Kolom tidak dapat diubah klien setelah transaksi dibuat.
+      await tx.query("savepoint s");
+      await gagal(tx, tx.query("update public.data_transaksi set alasan_belum_bayar = 'ubah' where no_resi = $1", [nol]), /permission denied/);
+      return { t, bayar, audit, nol, sebagian };
+    });
+    expect(r.t).toEqual([
+      { no_resi: r.nol, alasan_belum_bayar: "Pelanggan tetap, bayar saat ambil" },
+      { no_resi: r.sebagian, alasan_belum_bayar: null },
+    ]);
+    expect(r.bayar).toEqual([]);
+    expect(r.audit).toEqual([{ a: "Pelanggan tetap, bayar saat ambil" }]);
   });
 
   it("prefiks resi mengikuti pengaturan", async () => {
@@ -328,10 +362,11 @@ describe("Data Demo transaksi", () => {
       const hasil: string[] = [];
       for (const t of TRANSAKSI_DEMO) {
         const total = hitungTotal(t.barang.map((b) => ({ satuan: ITEM_DEMO[b.item].satuan, tarif: ITEM_DEMO[b.item].tarif_per_satuan, berat: b.berat_kg, koli: "koli" in b ? b.koli : "" }))).biaya;
-        const resi = (await tx.query<{ r: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, 'Data Demo', true) r", [
+        const resi = (await tx.query<{ r: string }>("select public.buat_transaksi($1, $2, $3::jsonb, $4, 'Data Demo', true, $5) r", [
           pel[t.pengirim], pel[t.penerima],
           JSON.stringify(t.barang.map((b) => ({ id_item: item[b.item], berat_kg: b.berat_kg, koli: "koli" in b ? b.koli : null }))),
           t.bayar === "lunas" ? total : t.bayar,
+          "alasanBelumBayar" in t ? t.alasanBelumBayar : null,
         ])).rows[0].r;
         hasil.push((await tx.query<{ s: string }>("select status_bayar s from public.data_transaksi where no_resi = $1", [resi])).rows[0].s);
       }

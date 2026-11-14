@@ -42,6 +42,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
   const [baris, setBaris] = useState<Baris[]>([{ kunci: 0, idItem: "", berat: "", koli: "" }]);
   const [bayar, setBayar] = useState("");
   const [catatan, setCatatan] = useState("");
+  const [alasanBelumBayar, setAlasanBelumBayar] = useState("");
   const [galat, setGalat] = useState<Record<string, string>>({});
   const [pesan, setPesan] = useState<string>();
   const [duplikat, setDuplikat] = useState<{ daftar: Duplikat[]; cetak: boolean } | null>(null);
@@ -62,6 +63,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
   const bayarAngka = /^\d+$/.test(bayar.replace(/[.\s]/g, "")) ? Number(bayar.replace(/[.\s]/g, "")) : bayar.trim() === "" ? 0 : NaN;
   const sisa = Number.isFinite(bayarAngka) ? total.biaya - bayarAngka : null;
   const semuaLengkap = total.lengkap && baris.every((b) => peta.has(b.idItem));
+  const belumBayar = bayarAngka === 0;
 
   function ubahBaris(kunci: number, ubah: Partial<Baris>) {
     setBaris((bs) => bs.map((b) => (b.kunci === kunci ? { ...b, ...ubah } : b)));
@@ -76,6 +78,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
       detail: baris.map((b) => ({ id_item: b.idItem, berat_kg: b.berat, koli: b.koli })),
       bayar_awal: bayar,
       catatan,
+      alasan_belum_bayar: alasanBelumBayar,
     });
     if (!r.success) {
       for (const isu of r.error.issues) {
@@ -110,6 +113,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
           detail: baris.map((b) => ({ id_item: b.idItem, berat_kg: b.berat, koli: peta.get(b.idItem)?.satuan === "koli" ? b.koli : "" })),
           bayar_awal: bayar,
           catatan,
+          alasan_belum_bayar: belumBayar ? alasanBelumBayar : "",
           konfirmasi_duplikat: konfirmasiDuplikat,
         });
         if (h.ok && h.data?.resi) {
@@ -141,6 +145,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
     setBaris([{ kunci: kunciBerikut.current++, idItem: "", berat: "", koli: "" }]);
     setBayar("");
     setCatatan("");
+    setAlasanBelumBayar("");
     setGalat({});
     setPesan(undefined);
     setKonfirmasiBatal(false);
@@ -283,7 +288,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
               </div>
               {!semuaLengkap && <dd className="text-xs text-muted-foreground">Lengkapi semua baris barang untuk total final.</dd>}
             </dl>
-            <Field id="bayar_awal" label="Pembayaran awal (Rp)" galat={galat.bayar_awal} bantuan="Kosongkan atau isi 0 bila belum bayar.">
+            <Field id="bayar_awal" label="Pembayaran awal (Rp)" galat={galat.bayar_awal} bantuan="Kosongkan atau isi 0 bila belum bayar (alasan wajib diisi).">
               <Input
                 {...ariaField("bayar_awal", galat.bayar_awal, true)}
                 value={bayar}
@@ -309,6 +314,23 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
                 </dd>
               </div>
             </dl>
+            {belumBayar && (
+              <Field
+                id="alasan_belum_bayar"
+                label="Alasan belum bayar"
+                wajib
+                galat={galat.alasan_belum_bayar}
+                bantuan="Wajib bila pembayaran awal Rp0. Tersimpan di transaksi dan audit log agar dapat dilacak; tidak masuk rekap kas."
+              >
+                <AreaTeks
+                  {...ariaField("alasan_belum_bayar", galat.alasan_belum_bayar, true)}
+                  value={alasanBelumBayar}
+                  onChange={(e) => setAlasanBelumBayar(e.target.value)}
+                  maxLength={300}
+                  placeholder="Contoh: pelanggan melunasi di loket tujuan sebelum barang diambil"
+                />
+              </Field>
+            )}
             <Field id="catatan" label="Catatan (opsional)" galat={galat.catatan}>
               <AreaTeks {...ariaField("catatan", galat.catatan)} value={catatan} onChange={(e) => setCatatan(e.target.value)} maxLength={500} />
             </Field>

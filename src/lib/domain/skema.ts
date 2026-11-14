@@ -270,8 +270,17 @@ export const skemaTransaksi = z.object({
     .max(BATAS_BARIS_BARANG, { error: `Maksimal ${BATAS_BARIS_BARANG} baris barang per transaksi.` }),
   bayar_awal: bayarAwal,
   catatan: teksOpsional("Catatan", 500),
+  alasan_belum_bayar: teksOpsional("Alasan belum bayar", 300),
   konfirmasi_duplikat: z.boolean().optional().default(false),
-});
+})
+  // Keputusan Fase 4 no. 2: Rp0 tidak membuat baris pembayaran, tetapi
+  // alasannya wajib dicatat (ditegakkan juga oleh buat_transaksi).
+  .superRefine((t, ctx) => {
+    if (t.bayar_awal === 0 && !t.alasan_belum_bayar) {
+      ctx.addIssue({ code: "custom", path: ["alasan_belum_bayar"], message: "Alasan belum bayar wajib diisi bila pembayaran awal Rp0." });
+    }
+  })
+  .transform((t) => (t.bayar_awal > 0 ? { ...t, alasan_belum_bayar: null } : t));
 export type InputTransaksi = z.input<typeof skemaTransaksi>;
 
 export const skemaBatalTransaksi = z.object({

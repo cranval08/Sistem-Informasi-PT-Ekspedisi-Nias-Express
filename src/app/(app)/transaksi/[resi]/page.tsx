@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ambilPengaturan, wajibAksesRute } from "@/lib/auth/sesi";
 import { formatAngka, formatRupiah, formatTanggalWaktu } from "@/lib/domain/format";
+import { bolehBatalkanPembayaran } from "@/lib/domain/pembayaran";
 import { relasiTunggal } from "@/lib/supabase/relasi";
 import { buatKlienServer } from "@/lib/supabase/server";
 import { ambilTransaksi } from "../data";
@@ -46,7 +47,7 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
     kantor
       ? supabase
           .from("pembayaran")
-          .select("id_pembayaran, waktu_bayar, jumlah_bayar, status_pembayaran_record, catatan, catatan_koreksi, pencatat:data_pengguna!pembayaran_id_pengguna_pencatat_fkey(nama_lengkap)")
+          .select("id_pembayaran, waktu_bayar, jumlah_bayar, status_pembayaran_record, catatan, catatan_koreksi, id_pengguna_pencatat, pencatat:data_pengguna!pembayaran_id_pengguna_pencatat_fkey(nama_lengkap)")
           .eq("no_resi", t.noResi)
           .order("waktu_bayar", { ascending: false })
       : Promise.resolve({ data: null }),
@@ -240,6 +241,13 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
                 <dd className="font-medium tabular-nums">{formatRupiah(sisa)}</dd>
               </div>
             </dl>
+            {kantor && t.alasanBelumBayar && (
+              <div className="rounded-lg border border-warning/30 bg-warning-subtle/60 p-2.5 text-sm">
+                <p className="font-medium">Alasan belum bayar saat transaksi dibuat (Rp0)</p>
+                <p className="whitespace-pre-line">{t.alasanBelumBayar}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Dicatat oleh {t.pencatat}. Tidak masuk riwayat pembayaran maupun rekap kas.</p>
+              </div>
+            )}
             {kantor &&
               (bayar?.length ? (
                 <ul className="divide-y rounded-lg border text-sm">
@@ -258,7 +266,7 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
                           {b.catatan_koreksi && <p className="mt-1 max-w-48 text-xs text-muted-foreground">{b.catatan_koreksi}</p>}
                         </div>
                       ) : (
-                        profil.peran === "pemilik" && (
+                        bolehBatalkanPembayaran(profil, b, zonaWaktu) && (
                           <TombolBatalPembayaran idPembayaran={b.id_pembayaran} ringkasan={`${formatRupiah(b.jumlah_bayar)} untuk ${t.noResi}`} />
                         )
                       )}

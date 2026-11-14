@@ -23,7 +23,7 @@ export const ambilTransaksi = cache(async (resiMentah: string) => {
   const { data: t, error } = await supabase
     .from("data_transaksi")
     .select(
-      `no_resi, waktu_transaksi, status_kirim, total_berat_kg, total_biaya, total_dibayar, status_bayar, catatan,
+      `no_resi, waktu_transaksi, status_kirim, total_berat_kg, total_biaya, total_dibayar, status_bayar, catatan, alasan_belum_bayar,
        status_void, void_reason, void_pada, waktu_diambil, catatan_pengambilan,
        override_belum_lunas, override_belum_lunas_alasan,
        petugasAmbil:data_pengguna!data_transaksi_diambil_diproses_oleh_fkey(nama_lengkap),
@@ -51,6 +51,7 @@ export const ambilTransaksi = cache(async (resiMentah: string) => {
     totalBiaya: Number(t.total_biaya),
     totalDibayar: Number(t.total_dibayar),
     catatan: t.catatan as string | null,
+    alasanBelumBayar: t.alasan_belum_bayar as string | null,
     void: t.status_void
       ? { alasan: t.void_reason as string, pada: t.void_pada as string, oleh: relasiTunggal(t.pembatal)?.nama_lengkap ?? "—" }
       : null,
