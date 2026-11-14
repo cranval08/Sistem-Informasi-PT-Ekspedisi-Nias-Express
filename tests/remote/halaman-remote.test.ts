@@ -58,7 +58,11 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
       const res = await fetch(APP + RUTE[rute].href, { headers: { cookie: cookie[peran] }, redirect: "manual" });
       if (bolehAkses(peran, rute)) {
         expect(res.status, `${RUTE[rute].href} harus 200`).toBe(200);
-        expect(await res.text()).not.toContain("Application error");
+        const html = await res.text();
+        expect(html).not.toContain("Application error");
+        // Galat kueri ditampilkan sebagai EmptyState "… gagal dimuat" dengan status 200 — tangkap juga.
+        // (/sistem-desain sengaja memperagakan state galat.)
+        if (rute !== "sistemDesain") expect(html, `${RUTE[rute].href} menampilkan galat muat data`).not.toMatch(/gagal dimuat/);
       } else {
         expect(res.status).toBe(307);
         expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
