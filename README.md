@@ -10,7 +10,7 @@ Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pemba
 > - **Koreksi sebelum berangkat**: lepas resi (Draf), pindahkan resi ke manifes Draf armada cadangan, atau batalkan manifes (wajib alasan); status resi yang sudah Dimuat dikembalikan ke Diterima Loket dan tercatat di riwayat.
 > - **Status armada** Perjalanan diatur otomatis oleh manifes (berangkat → Perjalanan, tiba → Siaga).
 > - **Perjalanan Saya** (Supir): penugasan, rute, ringkasan muatan tanpa data pelanggan/nominal, tombol berangkat/tiba, laporan kendala. Status diperbarui petugas — tanpa GPS.
-> - **Pengambilan** (Pemilik, Admin Loket, Staf Gudang): cari/pindai resi, cocokkan penerima, centang verifikasi identitas (wajib), konfirmasi → Sudah Diambil dengan waktu & petugas tercatat.
+> - **Pengambilan** (Pemilik, Admin Loket, Staf Gudang): cari/pindai resi, cocokkan penerima, centang verifikasi identitas (wajib), pastikan lunas (barang belum lunas tidak dapat diserahkan), konfirmasi → Sudah Diambil dengan waktu & petugas tercatat.
 > - **Pelacakan publik** `/lacak` (tanpa login, nonaktif sampai diaktifkan Pemilik di Pengaturan): hanya nomor resi, status, dan waktu.
 >
 > Modul transaksi, pembayaran, pelanggan, item & tarif, armada, pengguna, dan pengaturan dari fase sebelumnya tetap tersedia. Dashboard KPI dan laporan (Fase 6) masih berlabel *"dijadwalkan pada Fase 6"*.

@@ -11,7 +11,7 @@ export function TombolOverrideBelumLunas({ noResi, sisa }: { noResi: string; sis
   return (
     <DialogForm
       judul="Izinkan dimuat walau belum lunas?"
-      deskripsi={`Sisa tagihan ${sisa}. Override hanya oleh Pemilik sesuai kebijakan perusahaan; alasan tercatat di audit log dan tidak dapat dihapus.`}
+      deskripsi={`Sisa tagihan ${sisa}. Override hanya oleh Pemilik sesuai kebijakan perusahaan; alasan tercatat di audit log dan tidak dapat dihapus. Override hanya untuk pemuatan; barang tetap baru dapat diserahkan kepada penerima setelah lunas.`}
       pemicu={
         <Button variant="outline" size="default">
           <ShieldAlert aria-hidden /> Override Belum Lunas

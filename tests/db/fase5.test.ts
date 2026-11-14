@@ -305,6 +305,45 @@ describe("status pengiriman & pengambilan (PRD §15 Pengiriman 1–4)", () => {
     });
   });
 
+  it("pengambilan barang belum lunas diblokir sampai pelunasan dicatat (keputusan Fase 5 no. 4)", async () => {
+    const r = await skenario(async (tx) => {
+      // Jalur 1: dimuat dengan override belum lunas oleh Pemilik.
+      const a = await transaksi(tx, 100, false);
+      await aturPengaturan(tx, { izinkan_override_belum_lunas: true });
+      await tx.query("select public.override_belum_lunas($1, 'Bayar di loket tujuan')", [a]);
+      // Jalur 2: lunas saat dimuat, lalu pembayarannya dibatalkan setelah tiba.
+      const b = await transaksi(tx, 10);
+      const idM = await manifes(tx);
+      await tambah(tx, idM, [a, b]);
+      await muat(tx, idM);
+      await berangkat(tx, idM);
+      await tiba(tx, idM);
+      await jadi(tx, "pemilik");
+      const { rows } = await tx.query<{ id: string }>("select id_pembayaran id from public.pembayaran where no_resi = $1", [b]);
+      await tx.query("select public.batalkan_pembayaran($1, 'Salah catat')", [rows[0].id]);
+
+      for (const siapa of ["gudang", "admin", "pemilik"] as const) {
+        await jadi(tx, siapa);
+        await gagal(tx, () => ambil(tx, a, true), /Pembayaran belum lunas \(sisa Rp100\.000\)/);
+        await gagal(tx, () => ambil(tx, b, true), /Pembayaran belum lunas \(sisa Rp10\.000\)/);
+      }
+      const sebelum = [await statusKirim(tx, a), await statusKirim(tx, b)];
+
+      // Pelunasan sebagian belum cukup; pelunasan penuh membuka pengambilan.
+      await jadi(tx, "admin");
+      await tx.query("select public.catat_pembayaran($1, 40000)", [a]);
+      await gagal(tx, () => ambil(tx, a, true), /sisa Rp60\.000/);
+      await tx.query("select public.catat_pembayaran($1, 60000)", [a]);
+      await tx.query("select public.catat_pembayaran($1, 10000)", [b]);
+      await jadi(tx, "gudang");
+      await ambil(tx, a, true);
+      await ambil(tx, b, true);
+      return { sebelum, sesudah: [await statusKirim(tx, a), await statusKirim(tx, b)] };
+    });
+    expect(r.sebelum).toEqual(["tiba", "tiba"]);
+    expect(r.sesudah).toEqual(["sudah_diambil", "sudah_diambil"]);
+  });
+
   it("urutan manifes dijaga: berangkat sebelum muat & tiba sebelum berangkat ditolak", async () => {
     await skenario(async (tx) => {
       const resi = await transaksi(tx, 5);

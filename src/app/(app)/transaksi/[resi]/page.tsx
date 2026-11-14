@@ -159,13 +159,18 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
                 </span>
               </p>
             ) : (
-              t.statusKirim === "tiba" && (
+              t.statusKirim === "tiba" &&
+              (sisa > 0 ? (
+                <p className="rounded-lg border border-danger/30 bg-danger-subtle/60 p-2.5">
+                  Barang sudah tiba, tetapi baru dapat diserahkan kepada penerima setelah sisa tagihan {formatRupiah(sisa)} dilunasi.
+                </p>
+              ) : (
                 <Button asChild variant="outline">
                   <Link href={`/pengambilan?resi=${t.noResi}`}>
                     <UserCheck aria-hidden /> Proses Pengambilan
                   </Link>
                 </Button>
-              )
+              ))
             )}
           </CardContent>
         </Card>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, PackageCheck, PackageX, Search } from "lucide-react";
+import { CheckCircle2, PackageCheck, PackageX, Search, Wallet } from "lucide-react";
 import { paramTunggal } from "@/components/app/daftar";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
@@ -47,7 +47,7 @@ export default async function HalamanPengambilan(props: PageProps<"/pengambilan"
       : Promise.resolve({ data: null, error: null }),
     supabase
       .from("data_transaksi")
-      .select("no_resi, updated_at, total_berat_kg, penerima:data_pelanggan!data_transaksi_id_penerima_fkey(nama)")
+      .select("no_resi, updated_at, total_berat_kg, status_bayar, penerima:data_pelanggan!data_transaksi_id_penerima_fkey(nama)")
       .eq("status_kirim", "tiba")
       .eq("status_void", false)
       .order("updated_at", { ascending: false })
@@ -129,20 +129,26 @@ export default async function HalamanPengambilan(props: PageProps<"/pengambilan"
                 <AlertTitle>Barang belum tiba di loket tujuan</AlertTitle>
                 <AlertDescription>Pengambilan hanya dapat dikonfirmasi untuk barang berstatus Tiba.</AlertDescription>
               </Alert>
+            ) : t.status_bayar !== "lunas" ? (
+              <Alert variant="destructive">
+                <Wallet aria-hidden />
+                <AlertTitle>Pembayaran belum lunas — barang belum dapat diserahkan</AlertTitle>
+                <AlertDescription>
+                  <p>
+                    Sisa tagihan {formatRupiah(Number(t.total_biaya) - Number(t.total_dibayar))}.{" "}
+                    {kantor
+                      ? "Catat pelunasan di detail transaksi, lalu kembali ke halaman ini untuk mengonfirmasi pengambilan."
+                      : "Minta Admin Loket mencatat pelunasan, lalu cari ulang resi ini untuk mengonfirmasi pengambilan."}
+                  </p>
+                  {kantor && (
+                    <Button asChild size="default" className="mt-2">
+                      <Link href={`/transaksi/${t.no_resi}`}>Catat pelunasan</Link>
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
             ) : (
-              <>
-                {t.status_bayar !== "lunas" && (
-                  <Alert>
-                    <AlertTitle>Pembayaran belum lunas</AlertTitle>
-                    <AlertDescription>
-                      {kantor
-                        ? `Sisa tagihan ${formatRupiah(Number(t.total_biaya) - Number(t.total_dibayar))}. Catat pelunasan di detail transaksi sebelum barang diserahkan bila sesuai prosedur perusahaan.`
-                        : "Hubungi Admin Loket untuk pelunasan sebelum barang diserahkan bila sesuai prosedur perusahaan."}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                <FormPengambilan noResi={t.no_resi} namaPenerima={penerima?.nama ?? "—"} />
-              </>
+              <FormPengambilan noResi={t.no_resi} namaPenerima={penerima?.nama ?? "—"} />
             )}
           </CardContent>
         </Card>
@@ -160,7 +166,10 @@ export default async function HalamanPengambilan(props: PageProps<"/pengambilan"
               <li key={m.no_resi}>
                 <Link href={`${PATH}?resi=${m.no_resi}`} className="flex items-center justify-between gap-3 p-3 hover:bg-muted/40">
                   <span>
-                    <span className="font-medium text-primary">{m.no_resi}</span>
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-primary">{m.no_resi}</span>
+                      {m.status_bayar !== "lunas" && <StatusBadge jenis="bayar" nilai={m.status_bayar} />}
+                    </span>
                     <span className="block text-xs text-muted-foreground">{relasiTunggal(m.penerima)?.nama ?? "—"}</span>
                   </span>
                   <span className="text-right text-xs text-muted-foreground">
