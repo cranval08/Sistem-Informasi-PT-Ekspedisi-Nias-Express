@@ -117,6 +117,20 @@ describe.skipIf(!aktif)("RLS di Supabase Cloud (akun demo)", () => {
     expect(ditolak.error).not.toBeNull();
   });
 
+  it("agregat laporan hanya untuk Pemilik; peringatan data untuk Pemilik & Admin (Fase 6)", async () => {
+    const hari = new Date().toISOString().slice(0, 10);
+    const pemilik = await klien.pemilik.rpc("ringkasan_operasional", { p_dari: hari, p_sampai: hari });
+    expect(pemilik.error).toBeNull();
+    for (const peran of ["admin_loket", "staf_gudang", "supir"] as const) {
+      const r = await klien[peran].rpc("ringkasan_operasional", { p_dari: hari, p_sampai: hari });
+      expect(r.error?.code, peran).toBe("42501");
+      const a = await klien[peran].rpc("laporan_armada", { p_dari: hari, p_sampai: hari });
+      expect(a.error?.code, peran).toBe("42501");
+    }
+    expect((await klien.admin_loket.rpc("peringatan_data")).error).toBeNull();
+    expect((await klien.staf_gudang.rpc("peringatan_data")).error?.code).toBe("42501");
+  });
+
   it("Admin tidak dapat mengubah pengaturan", async () => {
     const { data } = await klien.admin_loket.from("pengaturan").update({ mode_demo: false }).eq("id", 1).select();
     expect(data).toEqual([]);

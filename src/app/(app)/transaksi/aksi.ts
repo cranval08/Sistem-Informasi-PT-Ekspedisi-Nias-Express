@@ -93,6 +93,17 @@ export async function simpanTransaksi(input: InputTransaksi): Promise<HasilSimpa
   });
 
   if (error?.code === "NX001") {
+    // Catat bahwa peringatan duplikasi muncul (indikator PRD §3), walau
+    // pengguna akhirnya membatalkan. RPC memeriksa ulang duplikatnya; galat
+    // pencatatan tidak menghalangi alur konfirmasi.
+    const beratGram = t.detail.reduce((n, d) => n + Math.round(Number(d.berat_kg) * 1000), 0);
+    if (!t.konfirmasi_duplikat) {
+      await supabase.rpc("catat_peringatan_duplikat", {
+        p_id_pengirim: t.id_pengirim,
+        p_id_penerima: t.id_penerima,
+        p_total_berat_kg: beratGram / 1000,
+      });
+    }
     // HINT berisi daftar resi yang mirip (lihat buat_transaksi).
     const daftar = (error.hint ?? "").split(",").filter(Boolean);
     const { data: duplikat } = await supabase

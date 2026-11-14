@@ -63,6 +63,9 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
         // Galat kueri ditampilkan sebagai EmptyState "… gagal dimuat" dengan status 200 — tangkap juga.
         // (/sistem-desain sengaja memperagakan state galat.)
         if (rute !== "sistemDesain") expect(html, `${RUTE[rute].href} menampilkan galat muat data`).not.toMatch(/gagal dimuat/);
+        // Nilai tampilan rusak (format angka/tanggal) di teks halaman, di luar <script>.
+        const teks = html.replace(/<script[\s\S]*?<\/script>/g, "");
+        expect(teks, `${RUTE[rute].href} menampilkan nilai rusak`).not.toMatch(/>[^<]*(\bNaN\b|Invalid Date|\bundefined\b|\[object Object\])[^<]*</);
       } else {
         expect(res.status).toBe(307);
         expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
@@ -126,6 +129,53 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
       if (pen?.telepon) expect(html).not.toContain(pen.telepon);
       expect(html).not.toMatch(/Rp\s?\d/);
     }
+  });
+
+  // Fase 6: dashboard & laporan dengan filter, dan ekspor CSV hanya untuk Pemilik.
+  const VARIAN: [string, KunciRute][] = [
+    ["/dashboard?periode=bulan_ini&grafik=minggu", "dashboard"],
+    ["/dashboard?dari=2026-01-01&sampai=2026-11-14", "dashboard"],
+    ["/laporan/transaksi?periode=7_hari&bayar=belum_lunas&batal=ya", "laporanTransaksi"],
+    ["/laporan/pembayaran?status=semua", "laporanBayar"],
+    ["/laporan/pengiriman?status=tiba", "laporanKirim"],
+    ["/audit-log?aksi=buat_transaksi&entitas=data_transaksi", "auditLog"],
+  ];
+  for (const peran of Object.keys(AKUN) as Peran[]) {
+    it.each(VARIAN)(`${peran}: %s (dengan filter)`, async (path, rute) => {
+      const res = await fetch(APP + path, { headers: { cookie: cookie[peran] }, redirect: "manual" });
+      if (bolehAkses(peran, rute)) {
+        expect(res.status, path).toBe(200);
+        expect(await res.text()).not.toMatch(/gagal dimuat|Application error/);
+      } else {
+        expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
+      }
+    });
+  }
+
+  const EKSPOR = ["transaksi", "pembayaran", "armada", "pengiriman", "audit"];
+  for (const peran of Object.keys(AKUN) as Peran[]) {
+    it.each(EKSPOR)(`${peran}: ekspor CSV %s`, async (jenis) => {
+      const res = await fetch(`${APP}/laporan/ekspor/${jenis}?periode=bulan_ini`, { headers: { cookie: cookie[peran] }, redirect: "manual" });
+      if (peran === "pemilik") {
+        expect(res.status).toBe(200);
+        expect(res.headers.get("content-type")).toMatch(/^text\/csv/);
+        expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="laporan-/);
+        // res.text() membuang BOM saat decoding — periksa bytenya langsung.
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+        const isi = new TextDecoder().decode(bytes);
+        expect(isi.split("\r\n")[0]).toContain(";");
+      } else {
+        expect(res.status).toBe(403);
+      }
+    });
+  }
+  it("ekspor tanpa login diarahkan ke /login; jenis tidak dikenal → 404", async () => {
+    const anon = await fetch(`${APP}/laporan/ekspor/transaksi`, { redirect: "manual" });
+    expect(anon.status).toBe(307);
+    expect(anon.headers.get("location")).toMatch(/\/login/);
+    const x = await fetch(`${APP}/laporan/ekspor/rahasia`, { headers: { cookie: cookie.pemilik }, redirect: "manual" });
+    expect(x.status).toBe(404);
   });
 
   // Data sungguhan: rute detail harus merender data yang ada (bukan 404).

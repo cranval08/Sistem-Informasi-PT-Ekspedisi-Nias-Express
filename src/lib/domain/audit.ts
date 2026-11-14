@@ -86,4 +86,35 @@ export const LABEL_AKSI_AUDIT: Record<string, string> = {
   konfirmasi_pengambilan: "Pengambilan dikonfirmasi",
   laporkan_kendala: "Kendala dilaporkan",
   selesaikan_kendala: "Kendala diselesaikan",
+  peringatan_duplikat: "Peringatan duplikasi",
 };
+
+/** Label entitas audit (nama tabel/objek di database). */
+export const LABEL_ENTITAS_AUDIT: Record<string, string> = {
+  data_transaksi: "Transaksi",
+  pembayaran: "Pembayaran",
+  manifes: "Manifes",
+  data_armada: "Armada",
+  data_item: "Jenis barang & tarif",
+  data_pelanggan: "Pelanggan",
+  data_pengguna: "Pengguna",
+  pengaturan: "Pengaturan",
+};
+
+/** Tautan ke halaman entitas bila ada. */
+export function tautanEntitas(entitas: string, id: string | null, detail?: unknown): string | null {
+  if (!id) return null;
+  const d = (detail ?? {}) as Record<string, unknown>;
+  switch (entitas) {
+    case "data_transaksi":
+      return `/transaksi/${id}`;
+    case "pembayaran":
+      return typeof d.no_resi === "string" ? `/transaksi/${d.no_resi}` : null;
+    case "manifes":
+      return `/manifes/${id}`;
+    case "data_armada":
+      return `/armada/${id}`;
+    default:
+      return null;
+  }
+}

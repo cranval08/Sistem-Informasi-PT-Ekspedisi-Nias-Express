@@ -2,7 +2,13 @@
 
 Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pembayaran, manifes, armada, status pengiriman, dan dashboard. Kebutuhan lengkap ada di [`PRD.md`](PRD.md).
 
-> **Status: Fase 5 (operasional logistik) selesai.** Fondasi (Fase 1), data inti (Fase 2), transaksi & resi (Fase 3), pembayaran & kas (Fase 4):
+> **Status: Fase 6 (dashboard & laporan) selesai.** Fase 7 (quality assurance) berikutnya.
+>
+> - **Dashboard per peran**: Pemilik — KPI, grafik transaksi & penerimaan (per hari/minggu/bulan), distribusi status, armada & utilisasi, peringatan kapasitas, indikator kontrol (peringatan duplikasi, override, pembatalan), data yang perlu diperiksa; filter Hari ini / 7 hari / Bulan ini / rentang khusus. Admin Loket — transaksi hari ini, belum lunas, pencarian, transaksi terbaru, data perlu diperiksa. Staf Gudang — barang siap dimuat, manifes aktif & muatan per truk, peringatan kapasitas, barang tiba belum diambil. Data dihitung dari database saat halaman dibuka (bukan real-time).
+> - **Laporan** (Pemilik): transaksi, pembayaran & kas, armada & tonase, pengiriman — dengan filter tanggal/status dan **ekspor CSV** yang mengikuti filter (titik koma + UTF-8 BOM agar langsung terbaca Excel Indonesia).
+> - **Audit log** (Pemilik): filter periode, aksi, entitas, pengguna, ID; ringkasan perubahan & detail; ekspor CSV. Login/logout tidak dicatat.
+>
+> Fase 1–5: fondasi, data inti, transaksi & resi, pembayaran & kas, operasional logistik:
 >
 > - **Manifes** (Pemilik, Staf Gudang): buat perjalanan per armada (Siaga, tanpa perjalanan aktif) dengan supir dan rute teks bebas; tambah resi lunas yang masih Diterima Loket; total tonase, kapasitas, dan persentase utilisasi dihitung otomatis; konfirmasi muat → berangkat → tiba.
 > - **Kapasitas**: muatan sama dengan kapasitas boleh diproses; melebihi kapasitas memblokir konfirmasi muat & keberangkatan. Override hanya Pemilik, hanya bila diizinkan di Pengaturan, wajib alasan, tercatat di audit log. Ambang peringatan (%) diambil dari Pengaturan — bila belum diisi, ditampilkan "perlu dilengkapi".
@@ -15,7 +21,7 @@ Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pemba
 >
 > - **Pembayaran (penyempurnaan Fase 4)**: pembayaran awal Rp0 tidak masuk riwayat pembayaran/rekap kas, tetapi alasannya wajib diisi dan tampil di detail transaksi serta audit log. Pembatalan pembayaran: Pemilik untuk semua pembayaran; Admin Loket hanya untuk pembayaran yang dicatatnya sendiri pada hari yang sama.
 >
-> Modul transaksi, pembayaran, pelanggan, item & tarif, armada, pengguna, dan pengaturan dari fase sebelumnya tetap tersedia. Dashboard KPI dan laporan (Fase 6) masih berlabel *"dijadwalkan pada Fase 6"*.
+> Modul transaksi, pembayaran, pelanggan, item & tarif, armada, pengguna, dan pengaturan dari fase sebelumnya tetap tersedia. Semua modul MVP sudah terhubung ke database.
 
 ## Teknologi
 
@@ -113,6 +119,8 @@ npm run test:halaman                      # buka semua halaman sebagai tiap pera
 `npm run test:halaman` login sebagai keempat akun demo, membuka setiap rute pada server yang sedang berjalan (default `http://localhost:3000`, ubah dengan `UJI_APP_URL`), dan memastikan halaman yang diizinkan merespons 200 sedangkan halaman lain dialihkan ke `/akses-ditolak`. Uji ini menangkap galat render server yang tidak terdeteksi oleh `npm run build`.
 
 `npm run test:remote` login sebagai keempat akun demo memakai publishable key dan memastikan RLS menolak akses yang tidak sah. Uji ini hanya membaca atau mencoba menulis yang harus ditolak, sehingga tidak mengubah data.
+
+**Uji manual**: daftar langkah per peran (dashboard, laporan & ekspor CSV di Excel, audit log, hak akses lewat URL, tampilan ponsel & mode gelap) ada di [`docs/uji-manual.md`](docs/uji-manual.md).
 
 Tes database (`tests/db/`) menjalankan seluruh migrasi di **PGlite** (Postgres dalam WASM) dengan shim skema `auth` Supabase, jadi tidak menyentuh database cloud dan tidak butuh Docker.
 
