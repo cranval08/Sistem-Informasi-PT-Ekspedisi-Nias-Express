@@ -14,6 +14,9 @@ import { SATUAN } from "@/lib/domain/skema";
 import { buatKlienServer } from "@/lib/supabase/server";
 import { AksiBarisItem, TombolTambahItem, type BarisItem } from "./form-item";
 
+// Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
+export const instant = false;
+
 export const metadata: Metadata = { title: "Jenis Barang & Tarif" };
 
 const PATH = "/master/item";

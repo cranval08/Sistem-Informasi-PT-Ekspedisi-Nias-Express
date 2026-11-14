@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Nias Express Operations Dashboard**: an operations web app for PT. Ekspedisi Nias Express (freight). `PRD.md` is the source of truth for business requirements; read the relevant section before implementing a module. Work proceeds in the phase order of PRD §18, with one commit per completed phase. Phases 1 (foundation) and 2 (core data: pelanggan, item/tarif, armada, pengguna, pengaturan) are done; modules not yet built render `ModulBelumTersedia` with their phase number.
+**Nias Express Operations Dashboard**: an operations web app for PT. Ekspedisi Nias Express (freight). `PRD.md` is the source of truth for business requirements; read the relevant section before implementing a module. Work proceeds in the phase order of PRD §18, with one commit per completed phase. Phases 1 (foundation), 2 (core data: pelanggan, item/tarif, armada, pengguna, pengaturan), and 3 (transactions, receipt numbers, receipt printing) are done; modules not yet built render `ModulBelumTersedia` with their phase number.
 
 @AGENTS.md
 
@@ -23,7 +23,7 @@ npm run test:remote                 # RLS smoke tests against cloud as the 4 dem
 npm run test:halaman                # with `npm run dev` running: every route × every role → 200 or /akses-ditolak (UJI_APP_URL to override port)
 npm run cek:env                     # validate .env.local offline; prints variable names/status only, never values
 npm run seed:akun                   # create/update the 4 demo accounts (needs SUPABASE_SECRET_KEY, DEMO_PASSWORD)
-npm run seed:demo                   # Phase 2 demo data ([Demo] customers, example tariffs/capacities); skips existing rows
+npm run seed:demo                   # demo data: [Demo] customers, example tariffs/capacities, armada, and transactions (created via buat_transaksi as Demo Admin); skips existing rows
 ```
 
 The Supabase project is **cloud only**: no local Supabase/Docker. Never commit `.env.local`. Don't run `db:push`, `seed:akun`, or `seed:demo` until the user confirms.
@@ -52,6 +52,7 @@ The Supabase project is **cloud only**: no local Supabase/Docker. Never commit `
   - One active manifest per truck; one active manifest per receipt number.
   - Optional status-change notes come from `app.catatan_status`.
 - **Phase 2 rules (`…0400`):** `data_armada.status` is not client-writable; it changes only via `ubah_status_armada` (Pemilik; notes required for perbaikan/rusak; `perjalanan` is set by manifests). Users can't deactivate or change the role of their own account; a supir still assigned to an active armada can't be deactivated or re-roled. New accounts: server action creates the Auth user with the secret key, then calls `daftarkan_pengguna` with the Pemilik's session so the audit log records the actor.
+- **Phase 3 rules (`…0500`):** transactions are created only by `buat_transaksi` (Pemilik/Admin Loket): one DB transaction that validates every row, generates the receipt via internal `buat_nomor_resi()` (`penghitung_resi` upsert, per Jakarta date), snapshots tariffs, records the optional initial payment, and audits. `jumlah` is derived, not entered: kg = berat, ton = round(berat/1000, 3), koli = integer count (`jumlah_satuan`). A possible duplicate (same sender + recipient + Jakarta date + total weight, not void) raises SQLSTATE `NX001` with the matching receipts in HINT; the caller retries with `p_konfirmasi_duplikat = true`, which is audited. `batalkan_transaksi` (Pemilik, reason required) voids only `diterima_loket` transactions with no valid payment and no active manifest.
 - **Role helpers:**
   - `peran_saya()` returns NULL for inactive or unregistered users, so every policy denies them.
   - Supir has no access to transaction, payment, or customer tables. Supir data must come from definer RPCs that return non-financial fields only.
@@ -60,8 +61,9 @@ The Supabase project is **cloud only**: no local Supabase/Docker. Never commit `
 **App layer (`src/`):**
 - `lib/domain/peran.ts`: the single route map (`RUTE`) with allowed roles plus the sidebar `MENU`. Every internal `page.tsx` must call `await wajibAksesRute("<key>")` from `lib/auth/sesi.ts`. The layout check alone is not enough because layouts don't re-render on client navigation.
 - `src/proxy.ts` (Next 16 renamed middleware to proxy) refreshes the Supabase session and redirects to `/login` when there is no session. It does an optimistic check only.
-- Next 16.4 has **Cache Components enabled**. Session-dependent segments use `export const instant = false` (see `(app)/layout.tsx`); otherwise reading cookies outside `<Suspense>` fails the build. Read `node_modules/next/dist/docs/` before using Next APIs, since they differ from older versions.
+- Next 16.4 has **Cache Components enabled**. Session-dependent segments use `export const instant = false` on the layout **and on every `(app)` page** (the layout flag doesn't cover navigations between sibling pages); otherwise reading cookies outside `<Suspense>` fails the build. `buatKlienServer()` calls `await connection()` after `cookies()` because supabase-js reads `Date.now()`; without both, dev logs `blocking-prerender-current-time` / `blocking-prerender-dynamic` on every route. Those dev warnings go to the dev console, not only `.next/dev/logs`, so check both. Read `node_modules/next/dist/docs/` before using Next APIs, since they differ from older versions.
 - **Forms & server actions:** Zod schemas in `lib/domain/skema.ts` are shared by client forms and server actions. Each module keeps `"use server"` actions in `aksi.ts`; every action calls `profilUntukAksi(...)` (actions are reachable by direct POST), returns `HasilAksi` from `lib/aksi/hasil.ts` (`gagalDb` maps Postgres errors to Indonesian messages), and calls `refresh()` from `next/cache` after writing. Client forms use `DialogForm`/`useKirimForm` (`components/app/form/dialog-form.tsx`), which submit via `onSubmit` instead of `<form action>` so fields aren't reset when the server rejects. List pages use URL search params with `components/app/daftar.tsx` (search, filter links, pagination).
+- **Money math in the UI** (`lib/domain/transaksi.ts`) uses integer milli-units and BigInt so the live preview matches Postgres exactly; `tests/db/fase3.test.ts` cross-checks it against `jumlah_satuan`. Tables with several FKs to the same table need embed hints, e.g. `pengirim:data_pelanggan!id_pengirim(nama)`.
 - PostgREST many-to-one embeds are typed as arrays without generated DB types; read them with `relasiTunggal()` from `lib/supabase/relasi.ts`.
 - Status labels and badge tones live in `lib/domain/status.ts`. Rupiah, `Asia/Jakarta` dates, and phone normalization live in `lib/domain/format.ts`; phone normalization mirrors SQL `normalisasi_telepon`.
 - **Server → client boundary:**

@@ -67,12 +67,17 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
   }
 
   // Rute dinamis: id tidak ada → 404 (bukan 500); peran tanpa akses → /akses-ditolak.
-  it.each(Object.keys(AKUN) as Peran[])("%s: /armada/[id] tidak dikenal", async (peran) => {
-    const res = await fetch(`${APP}/armada/00000000-0000-4000-8000-000000000000`, {
-      headers: { cookie: cookie[peran] },
-      redirect: "manual",
+  const DINAMIS: [string, KunciRute][] = [
+    ["/armada/00000000-0000-4000-8000-000000000000", "armada"],
+    ["/transaksi/NX-19000101-0001", "transaksi"],
+    ["/transaksi/NX-19000101-0001/cetak", "transaksi"],
+    ["/transaksi/bukan-resi", "transaksi"],
+  ];
+  for (const peran of Object.keys(AKUN) as Peran[]) {
+    it.each(DINAMIS)(`${peran}: %s tidak dikenal`, async (path, rute) => {
+      const res = await fetch(APP + path, { headers: { cookie: cookie[peran] }, redirect: "manual" });
+      if (bolehAkses(peran, rute)) expect(res.status).toBe(404);
+      else expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
     });
-    if (bolehAkses(peran, "armada")) expect(res.status).toBe(404);
-    else expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
-  });
+  }
 });

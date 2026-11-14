@@ -51,3 +51,14 @@ export const POLA_TELEPON = /^0\d{9,12}$/;
 export function teleponValid(input: string): boolean {
   return POLA_TELEPON.test(normalisasiTelepon(input));
 }
+
+/** Bersihkan kata kunci untuk filter PostgREST `or(...)` (hindari karakter sintaks). */
+export function kataKunciAman(q: string | undefined): string {
+  return (q ?? "").replace(/[^\p{L}\p{N} '\-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+}
+
+/** Tanggal kalender (YYYY-MM-DD) di zona waktu operasional, digeser `hari`. */
+export function tanggalOperasional(zonaWaktu: string = ZONA_WAKTU_DEFAULT, hari = 0, dari: Date = new Date()): string {
+  const d = new Date(dari.getTime() + hari * 86_400_000);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: zonaWaktu, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}

@@ -15,6 +15,9 @@ import { formatAngka, formatTanggalWaktu } from "@/lib/domain/format";
 import { relasiTunggal } from "@/lib/supabase/relasi";
 import { buatKlienServer } from "@/lib/supabase/server";
 
+// Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
+export const instant = false;
+
 export const metadata: Metadata = { title: "Detail Armada" };
 
 export default async function HalamanDetailArmada(props: PageProps<"/armada/[id]">) {

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
+import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { envPublik } from "./env";
 
@@ -11,6 +12,11 @@ export async function buatKlienServer() {
   // cookies() dulu: menandai render sebagai dinamis sehingga konfigurasi
   // diperiksa saat request, bukan saat build (build tidak butuh .env.local).
   const cookieStore = await cookies();
+  // supabase-js memeriksa kedaluwarsa token dengan Date.now(). Dengan Cache
+  // Components, waktu saat ini di luar connection() dianggap nilai tidak
+  // stabil saat prerender (peringatan blocking-prerender-current-time).
+  // connection() menandai sisa render sebagai khusus request.
+  await connection();
   const { url, publishableKey } = envPublik();
 
   return createServerClient(url, publishableKey, {

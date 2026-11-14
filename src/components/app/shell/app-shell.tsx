@@ -60,7 +60,7 @@ export function AppShell({ children, pengguna, namaPerusahaan, modeDemo }: Props
         <SidebarNav peran={pengguna.peran} />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64 print:pl-0">
         {modeDemo && (
           <div className="no-print bg-warning-subtle px-4 py-1.5 text-center text-xs font-medium text-warning">
             Data Demo: data di aplikasi ini adalah contoh, bukan data aktual perusahaan.
@@ -126,7 +126,7 @@ export function AppShell({ children, pengguna, namaPerusahaan, modeDemo }: Props
           </DropdownMenu>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6">
+        <main className="flex-1 px-4 py-6 sm:px-6 print:p-0">
           <div className="mx-auto w-full max-w-7xl space-y-6">{children}</div>
         </main>
       </div>

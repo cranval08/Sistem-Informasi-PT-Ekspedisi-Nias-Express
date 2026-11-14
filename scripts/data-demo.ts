@@ -32,3 +32,20 @@ export const ARMADA_DEMO = [
 ] as const;
 
 export const CATATAN_ARMADA_DEMO = "Data Demo — kapasitas contoh, bukan data aktual perusahaan.";
+
+/**
+ * Transaksi demo (dibuat lewat RPC buat_transaksi sebagai akun Demo Admin,
+ * sehingga melewati validasi & audit yang sama dengan aplikasi).
+ * Indeks merujuk PELANGGAN_DEMO / ITEM_DEMO. bayar: "lunas" = sebesar total.
+ */
+export const TRANSAKSI_DEMO = [
+  { pengirim: 0, penerima: 3, barang: [{ item: 0, berat_kg: "25" }], bayar: "lunas" },
+  { pengirim: 1, penerima: 4, barang: [{ item: 3, berat_kg: "12.5", koli: "3" }, { item: 1, berat_kg: "40" }], bayar: 50000 },
+  { pengirim: 5, penerima: 2, barang: [{ item: 2, berat_kg: "1500" }], bayar: 0 },
+  { pengirim: 2, penerima: 0, barang: [{ item: 4, berat_kg: "8", koli: "2" }], bayar: "lunas" },
+] as const satisfies readonly {
+  pengirim: number;
+  penerima: number;
+  barang: readonly { item: number; berat_kg: string; koli?: string }[];
+  bayar: number | "lunas";
+}[];

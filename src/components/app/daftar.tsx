@@ -71,7 +71,7 @@ export function FilterTautan({
   label: string;
 }) {
   return (
-    <nav aria-label={label} className="inline-flex rounded-lg border bg-card p-0.5">
+    <nav aria-label={label} className="inline-flex flex-wrap rounded-lg border bg-card p-0.5">
       {pilihan.map((p) => {
         const dipilih = p.nilai === aktif;
         return (
@@ -146,7 +146,4 @@ export function Paginasi({
   );
 }
 
-/** Bersihkan kata kunci untuk filter PostgREST `or(...)` (hindari karakter sintaks). */
-export function kataKunciAman(q: string | undefined): string {
-  return (q ?? "").replace(/[^\p{L}\p{N} '\-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
-}
+export { kataKunciAman } from "@/lib/domain/format";

@@ -12,6 +12,9 @@ import { relasiTunggal } from "@/lib/supabase/relasi";
 import { buatKlienServer } from "@/lib/supabase/server";
 import { AksiBarisArmada, TombolTambahArmada, type BarisArmada, type PilihanSupir } from "./form-armada";
 
+// Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
+export const instant = false;
+
 export const metadata: Metadata = { title: "Daftar Armada" };
 
 const PATH = "/armada";

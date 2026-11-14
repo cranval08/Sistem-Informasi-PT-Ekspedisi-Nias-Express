@@ -12,7 +12,8 @@
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import { envPublik, kunciRahasiaServer } from "../src/lib/supabase/env";
-import { ARMADA_DEMO, CATATAN_ARMADA_DEMO, ITEM_DEMO, PELANGGAN_DEMO } from "./data-demo";
+import { hitungTotal, type Satuan } from "../src/lib/domain/transaksi";
+import { ARMADA_DEMO, CATATAN_ARMADA_DEMO, ITEM_DEMO, PELANGGAN_DEMO, TRANSAKSI_DEMO } from "./data-demo";
 
 config({ path: ".env.local", quiet: true });
 
@@ -23,8 +24,9 @@ function gagal(pesan: string): never {
 
 let url: string;
 let kunci: string;
+let publishableKey: string;
 try {
-  ({ url } = envPublik(process.env));
+  ({ url, publishableKey } = envPublik(process.env));
   ({ kunci } = kunciRahasiaServer(process.env));
 } catch (e) {
   gagal((e as Error).message);
@@ -84,7 +86,63 @@ async function main() {
   console.log(`✓ Armada demo      : ${armadaBaru.length} ditambahkan, ${ARMADA_DEMO.length - armadaBaru.length} sudah ada`);
   if (!supir) console.log("  (akun demo.supir@example.com belum ada — jalankan npm run seed:akun lalu tugaskan supir lewat menu Armada)");
 
+  await seedTransaksi();
+
   console.log("\nSelesai. Semua data berlabel [Demo]; tarif & kapasitas hanya contoh dan wajib diganti Pemilik.");
+}
+
+/**
+ * Transaksi demo dibuat sebagai Demo Admin lewat RPC buat_transaksi (aturan,
+ * nomor resi, & audit sama persis dengan aplikasi). Dilewati bila sudah ada
+ * transaksi dengan pengirim demo.
+ */
+async function seedTransaksi() {
+  const password = process.env.DEMO_PASSWORD;
+  if (!password) {
+    console.log("• Transaksi demo   : dilewati (DEMO_PASSWORD belum diisi)");
+    return;
+  }
+  const { data: pel } = await supabase.from("data_pelanggan").select("id_pelanggan, telepon");
+  const idPel = new Map((pel ?? []).map((p) => [p.telepon, p.id_pelanggan]));
+  const idsDemo = PELANGGAN_DEMO.map((p) => idPel.get(p.telepon)).filter((x): x is string => !!x);
+  const { count } = await supabase.from("data_transaksi").select("*", { count: "exact", head: true }).in("id_pengirim", idsDemo);
+  if (count) {
+    console.log(`• Transaksi demo   : dilewati (${count} transaksi demo sudah ada)`);
+    return;
+  }
+  const { data: items } = await supabase.from("data_item").select("id_item, nama_item, satuan, tarif_per_satuan");
+  const item = new Map((items ?? []).map((i) => [i.nama_item.toLowerCase(), i]));
+
+  const admin = createClient(url, publishableKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const { error: eLogin } = await admin.auth.signInWithPassword({ email: "demo.admin@example.com", password });
+  if (eLogin) {
+    console.log("• Transaksi demo   : dilewati (login demo.admin@example.com gagal — jalankan npm run seed:akun)");
+    return;
+  }
+
+  let dibuat = 0;
+  for (const t of TRANSAKSI_DEMO) {
+    const barang = t.barang.map((b) => {
+      const data = item.get(ITEM_DEMO[b.item].nama_item.toLowerCase());
+      if (!data) throw new Error(`Jenis barang demo "${ITEM_DEMO[b.item].nama_item}" tidak ditemukan.`);
+      return { data, berat: b.berat_kg, koli: "koli" in b ? b.koli : "" };
+    });
+    const total = hitungTotal(
+      barang.map((b) => ({ satuan: b.data.satuan as Satuan, tarif: Number(b.data.tarif_per_satuan), berat: b.berat, koli: b.koli })),
+    ).biaya;
+    const { error } = await admin.rpc("buat_transaksi", {
+      p_id_pengirim: idPel.get(PELANGGAN_DEMO[t.pengirim].telepon),
+      p_id_penerima: idPel.get(PELANGGAN_DEMO[t.penerima].telepon),
+      p_detail: barang.map((b) => ({ id_item: b.data.id_item, berat_kg: b.berat, koli: b.koli || null })),
+      p_bayar_awal: t.bayar === "lunas" ? total : t.bayar,
+      p_catatan: "Data Demo",
+      p_konfirmasi_duplikat: true,
+    });
+    if (error) throw error;
+    dibuat++;
+  }
+  await admin.auth.signOut();
+  console.log(`✓ Transaksi demo   : ${dibuat} dibuat (lunas, sebagian, belum bayar)`);
 }
 
 main().catch((e) => gagal(e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Galat tidak dikenal saat seed."));

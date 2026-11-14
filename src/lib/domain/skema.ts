@@ -220,6 +220,65 @@ export const skemaPengaturan = z.object({
 });
 
 // ---------------------------------------------------------------------
+// Transaksi (PRD §7.8). Dikirim sebagai objek (bukan FormData) karena
+// memuat banyak baris barang. Validasi per baris yang butuh satuan item
+// (koli) dilakukan form & fungsi database.
+// ---------------------------------------------------------------------
+export const BATAS_BARIS_BARANG = 50;
+
+const bayarAwal = z
+  .string()
+  .optional()
+  .transform((s) => (s ?? "").trim().replace(/[.\s]/g, "") || "0")
+  .pipe(
+    z
+      .string()
+      .regex(/^\d+$/, { error: "Pembayaran awal harus bilangan bulat Rupiah minimal 0." })
+      .transform(Number)
+      .pipe(z.number().int().max(1_000_000_000_000, { error: "Pembayaran awal terlalu besar." })),
+  );
+
+export const skemaBarisBarang = z.object({
+  id_item: z.uuid({ error: "Pilih jenis barang dari daftar." }),
+  berat_kg: z
+    .string({ error: "Berat wajib diisi." })
+    .transform((s) => s.trim().replace(",", "."))
+    .pipe(
+      z
+        .string()
+        .min(1, { error: "Berat wajib diisi." })
+        .regex(/^\d+(\.\d{1,3})?$/, { error: "Berat harus angka positif dengan maksimal 3 angka desimal." })
+        .refine((v) => Number(v) > 0, { error: "Berat harus lebih dari 0 kg." }),
+    ),
+  koli: z
+    .string()
+    .optional()
+    .transform((s) => {
+      const t = (s ?? "").trim();
+      return t === "" ? null : t;
+    })
+    .pipe(z.string().regex(/^[1-9]\d*$/, { error: "Jumlah koli harus bilangan bulat lebih dari 0." }).nullable()),
+});
+
+export const skemaTransaksi = z.object({
+  id_pengirim: z.uuid({ error: "Pilih atau tambahkan pengirim." }),
+  id_penerima: z.uuid({ error: "Pilih atau tambahkan penerima." }),
+  detail: z
+    .array(skemaBarisBarang)
+    .min(1, { error: "Minimal satu baris barang wajib diisi." })
+    .max(BATAS_BARIS_BARANG, { error: `Maksimal ${BATAS_BARIS_BARANG} baris barang per transaksi.` }),
+  bayar_awal: bayarAwal,
+  catatan: teksOpsional("Catatan", 500),
+  konfirmasi_duplikat: z.boolean().optional().default(false),
+});
+export type InputTransaksi = z.input<typeof skemaTransaksi>;
+
+export const skemaBatalTransaksi = z.object({
+  no_resi: z.string().min(1, { error: "Nomor resi tidak valid." }).max(40),
+  alasan: teks("Alasan pembatalan", 300),
+});
+
+// ---------------------------------------------------------------------
 // Utilitas
 // ---------------------------------------------------------------------
 export type GalatField = Record<string, string>;

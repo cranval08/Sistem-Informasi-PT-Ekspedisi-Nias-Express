@@ -2,15 +2,15 @@
 
 Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pembayaran, manifes, armada, status pengiriman, dan dashboard. Kebutuhan lengkap ada di [`PRD.md`](PRD.md).
 
-> **Status: Fase 2 (data inti) selesai.** Selain fondasi Fase 1 (autentikasi, hak akses per peran, skema database + RLS, layout, sistem desain), modul berikut sudah terhubung ke database:
+> **Status: Fase 3 (transaksi & resi) selesai.** Fondasi (Fase 1) dan data inti (Fase 2) ditambah:
 >
-> - **Pelanggan** (Pemilik, Admin Loket): cari nama/telepon, paginasi, tambah/ubah, nonaktif/aktifkan, peringatan nomor telepon ganda.
-> - **Jenis barang & tarif** (Pemilik): tambah/ubah tarif, nonaktifkan, riwayat perubahan (nilai lama → baru) dari audit log.
-> - **Armada** (Pemilik kelola, Staf Gudang lihat): plat, jenis, kapasitas wajib, supir dari pengguna berperan Supir, ubah status dengan catatan, riwayat status.
-> - **Pengguna** (Pemilik): buat akun login, ubah nama/telepon/peran, nonaktif/aktifkan (sekaligus blokir login), atur ulang password.
-> - **Pengaturan** (Pemilik): identitas perusahaan, prefiks resi, ambang peringatan kapasitas, kebijakan override, mode demo.
+> - **Buat transaksi** (Pemilik, Admin Loket): pilih atau tambah pengirim/penerima, satu atau lebih baris barang dari master item, total biaya dan sisa pembayaran dihitung langsung, pembayaran awal opsional, peringatan kemungkinan transaksi ganda yang harus dikonfirmasi (tercatat di audit log).
+> - **Nomor resi** otomatis `PREFIKS-YYYYMMDD-NNNN`, berurutan per hari (Asia/Jakarta).
+> - **Daftar & detail transaksi** (Pemilik, Admin Loket, Staf Gudang): cari resi/nama/telepon, filter periode, status bayar, dan status kirim; detail rincian barang, pembayaran, riwayat status.
+> - **Cetak resi** lewat fungsi print browser: format A5 atau thermal 80/58 mm. Belum ada koneksi printer Bluetooth khusus.
+> - **Pembatalan transaksi** (Pemilik, wajib alasan) untuk transaksi yang belum dimuat dan belum ada pembayaran.
 >
-> Modul lain (transaksi, pembayaran, manifes, laporan, audit log) masih tampil sebagai halaman berlabel *"dijadwalkan pada Fase N"*.
+> Fase 2 tetap tersedia: pelanggan, jenis barang & tarif, armada, pengguna, pengaturan. Modul lain (pencatatan pembayaran lanjutan, manifes, pengambilan, laporan, audit log) masih berlabel *"dijadwalkan pada Fase N"*.
 
 ## Teknologi
 
@@ -75,7 +75,7 @@ npm run seed:akun
 | Staf Gudang | `demo.gudang@example.com` | nilai `DEMO_PASSWORD` |
 | Supir | `demo.supir@example.com` | nilai `DEMO_PASSWORD` |
 
-Lalu, opsional, isi data contoh Fase 2 (pelanggan, jenis barang dengan **tarif contoh**, armada dengan **kapasitas contoh**):
+Lalu, opsional, isi data contoh (pelanggan, jenis barang dengan **tarif contoh**, armada dengan **kapasitas contoh**, dan 4 transaksi dengan status bayar berbeda yang dibuat sebagai Demo Admin):
 
 ```bash
 npm run seed:demo

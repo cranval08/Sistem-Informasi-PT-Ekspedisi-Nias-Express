@@ -11,6 +11,9 @@ import { isPeran, LABEL_PERAN, DAFTAR_PERAN } from "@/lib/domain/peran";
 import { buatKlienServer } from "@/lib/supabase/server";
 import { AksiBarisPengguna, TombolTambahPengguna } from "./form-pengguna";
 
+// Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
+export const instant = false;
+
 export const metadata: Metadata = { title: "Data Pengguna" };
 
 const PATH = "/master/pengguna";

@@ -10,6 +10,9 @@ import { formatTanggalWaktu, normalisasiTelepon } from "@/lib/domain/format";
 import { buatKlienServer } from "@/lib/supabase/server";
 import { AksiBarisPelanggan, TombolTambahPelanggan } from "./form-pelanggan";
 
+// Bergantung pada sesi: render per request, tanpa validasi navigasi instan (lihat (app)/layout.tsx).
+export const instant = false;
+
 export const metadata: Metadata = { title: "Daftar Pelanggan" };
 
 const PATH = "/pelanggan";
