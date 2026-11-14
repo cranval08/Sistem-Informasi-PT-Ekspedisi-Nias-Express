@@ -43,7 +43,7 @@ export default async function HalamanDetailTransaksi(props: PageProps<"/transaks
     kantor
       ? supabase
           .from("pembayaran")
-          .select("id_pembayaran, waktu_bayar, jumlah_bayar, status_pembayaran_record, catatan, catatan_koreksi, pencatat:data_pengguna!id_pengguna_pencatat(nama_lengkap)")
+          .select("id_pembayaran, waktu_bayar, jumlah_bayar, status_pembayaran_record, catatan, catatan_koreksi, pencatat:data_pengguna!pembayaran_id_pengguna_pencatat_fkey(nama_lengkap)")
           .eq("no_resi", t.noResi)
           .order("waktu_bayar", { ascending: false })
       : Promise.resolve({ data: null }),

@@ -80,4 +80,24 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
       else expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
     });
   }
+  // Data sungguhan: rute detail harus merender data yang ada (bukan 404).
+  it("detail & cetak resi yang ada tampil untuk peran yang diizinkan", async () => {
+    const { url, publishableKey } = envPublik(process.env);
+    const klien = createServerClient(url, publishableKey, { cookies: { getAll: () => [], setAll: () => {} } });
+    await klien.auth.signInWithPassword({ email: AKUN.admin_loket, password: process.env.DEMO_PASSWORD! });
+    const { data, error } = await klien.from("data_transaksi").select("no_resi").limit(1).maybeSingle();
+    expect(error).toBeNull();
+    if (!data) return; // belum ada transaksi di cloud
+    for (const peran of Object.keys(AKUN) as Peran[]) {
+      for (const path of [`/transaksi/${data.no_resi}`, `/transaksi/${data.no_resi}/cetak`, `/transaksi/${data.no_resi}/cetak?format=thermal58`]) {
+        const res = await fetch(APP + path, { headers: { cookie: cookie[peran] }, redirect: "manual" });
+        if (bolehAkses(peran, "transaksi")) {
+          expect(res.status, `${peran} ${path}`).toBe(200);
+          expect(await res.text()).toContain(data.no_resi);
+        } else {
+          expect(res.headers.get("location"), `${peran} ${path}`).toMatch(/\/akses-ditolak$/);
+        }
+      }
+    }
+  });
 });

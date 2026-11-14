@@ -18,19 +18,23 @@ export const ambilTransaksi = cache(async (resiMentah: string) => {
   if (!POLA_RESI.test(resi)) return null;
 
   const supabase = await buatKlienServer();
-  const { data: t } = await supabase
+  // Hint embed memakai nama constraint FK: data_transaksi punya beberapa FK
+  // ke tabel yang sama, dan hint nama kolom bisa ambigu (PGRST201).
+  const { data: t, error } = await supabase
     .from("data_transaksi")
     .select(
       `no_resi, waktu_transaksi, status_kirim, total_berat_kg, total_biaya, total_dibayar, status_bayar, catatan,
        status_void, void_reason, void_pada, waktu_diambil,
-       pengirim:data_pelanggan!id_pengirim(nama, telepon),
-       penerima:data_pelanggan!id_penerima(nama, telepon),
-       pencatat:data_pengguna!id_pengguna(nama_lengkap),
-       pembatal:data_pengguna!void_oleh(nama_lengkap),
+       pengirim:data_pelanggan!data_transaksi_id_pengirim_fkey(nama, telepon),
+       penerima:data_pelanggan!data_transaksi_id_penerima_fkey(nama, telepon),
+       pencatat:data_pengguna!data_transaksi_id_pengguna_fkey(nama_lengkap),
+       pembatal:data_pengguna!data_transaksi_void_oleh_fkey(nama_lengkap),
        detail:detail_transaksi(id_detail, satuan_saat_transaksi, jumlah, berat_kg, tarif_saat_transaksi, subtotal, item:data_item(nama_item))`,
     )
     .eq("no_resi", resi)
     .maybeSingle();
+  // Galat query bukan "tidak ditemukan": lempar agar tidak tersamar sebagai 404.
+  if (error) throw new Error(`Transaksi gagal dimuat (${error.code ?? "tanpa kode"}).`);
   if (!t) return null;
 
   return {

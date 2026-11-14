@@ -28,7 +28,7 @@ export default async function HalamanDetailArmada(props: PageProps<"/armada/[id]
 
   const supabase = await buatKlienServer();
   const { zonaWaktu } = await ambilPengaturan();
-  const [{ data: a }, { data: riwayat, error: galatRiwayat }] = await Promise.all([
+  const [{ data: a, error: galatArmada }, { data: riwayat, error: galatRiwayat }] = await Promise.all([
     supabase
       .from("data_armada")
       .select("plat_nomor, jenis_unit, kapasitas_ton, status, waktu_status_diubah, is_active, catatan, waktu_dibuat, supir:data_pengguna(nama_lengkap, nomor_telepon)")
@@ -41,6 +41,8 @@ export default async function HalamanDetailArmada(props: PageProps<"/armada/[id]
       .order("waktu_perubahan", { ascending: false })
       .limit(50),
   ]);
+  // Galat query bukan "tidak ditemukan": jangan disamarkan sebagai 404.
+  if (galatArmada) throw new Error(`Armada gagal dimuat (${galatArmada.code ?? "tanpa kode"}).`);
   if (!a) notFound();
   const supir = relasiTunggal(a.supir);
 

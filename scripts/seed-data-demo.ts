@@ -102,15 +102,16 @@ async function seedTransaksi() {
     console.log("• Transaksi demo   : dilewati (DEMO_PASSWORD belum diisi)");
     return;
   }
-  const { data: pel } = await supabase.from("data_pelanggan").select("id_pelanggan, telepon");
+  const { data: pel } = await supabase.from("data_pelanggan").select("id_pelanggan, telepon, is_active");
   const idPel = new Map((pel ?? []).map((p) => [p.telepon, p.id_pelanggan]));
+  const pelAktif = new Set((pel ?? []).filter((p) => p.is_active).map((p) => p.telepon));
   const idsDemo = PELANGGAN_DEMO.map((p) => idPel.get(p.telepon)).filter((x): x is string => !!x);
   const { count } = await supabase.from("data_transaksi").select("*", { count: "exact", head: true }).in("id_pengirim", idsDemo);
   if (count) {
     console.log(`• Transaksi demo   : dilewati (${count} transaksi demo sudah ada)`);
     return;
   }
-  const { data: items } = await supabase.from("data_item").select("id_item, nama_item, satuan, tarif_per_satuan");
+  const { data: items } = await supabase.from("data_item").select("id_item, nama_item, satuan, tarif_per_satuan, is_active");
   const item = new Map((items ?? []).map((i) => [i.nama_item.toLowerCase(), i]));
 
   const admin = createClient(url, publishableKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -121,7 +122,17 @@ async function seedTransaksi() {
   }
 
   let dibuat = 0;
+  const dilewati: string[] = [];
   for (const t of TRANSAKSI_DEMO) {
+    // Data demo yang dinonaktifkan (mis. saat uji manual) tidak diaktifkan ulang diam-diam.
+    const nonaktif = [
+      ...[PELANGGAN_DEMO[t.pengirim], PELANGGAN_DEMO[t.penerima]].filter((p) => !pelAktif.has(p.telepon)).map((p) => p.nama),
+      ...t.barang.map((b) => ITEM_DEMO[b.item].nama_item).filter((n) => !item.get(n.toLowerCase())?.is_active),
+    ];
+    if (nonaktif.length) {
+      dilewati.push(`${PELANGGAN_DEMO[t.pengirim].nama} → ${PELANGGAN_DEMO[t.penerima].nama} (nonaktif: ${[...new Set(nonaktif)].join(", ")})`);
+      continue;
+    }
     const barang = t.barang.map((b) => {
       const data = item.get(ITEM_DEMO[b.item].nama_item.toLowerCase());
       if (!data) throw new Error(`Jenis barang demo "${ITEM_DEMO[b.item].nama_item}" tidak ditemukan.`);
@@ -142,7 +153,8 @@ async function seedTransaksi() {
     dibuat++;
   }
   await admin.auth.signOut();
-  console.log(`✓ Transaksi demo   : ${dibuat} dibuat (lunas, sebagian, belum bayar)`);
+  console.log(`✓ Transaksi demo   : ${dibuat} dibuat`);
+  for (const d of dilewati) console.log(`  dilewati: ${d}`);
 }
 
 main().catch((e) => gagal(e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Galat tidak dikenal saat seed."));

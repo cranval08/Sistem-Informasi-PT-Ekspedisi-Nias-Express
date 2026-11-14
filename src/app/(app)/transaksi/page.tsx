@@ -39,7 +39,7 @@ export default async function HalamanTransaksi(props: PageProps<"/transaksi">) {
     .from("data_transaksi")
     .select(
       `no_resi, waktu_transaksi, status_kirim, status_bayar, total_berat_kg, total_biaya, total_dibayar, status_void,
-       pengirim:data_pelanggan!id_pengirim(nama), penerima:data_pelanggan!id_penerima(nama)`,
+       pengirim:data_pelanggan!data_transaksi_id_pengirim_fkey(nama), penerima:data_pelanggan!data_transaksi_id_penerima_fkey(nama)`,
       { count: "exact" },
     )
     .order("waktu_transaksi", { ascending: false })
