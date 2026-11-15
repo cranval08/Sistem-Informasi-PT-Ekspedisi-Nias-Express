@@ -2,7 +2,7 @@
 // komponen ikon (fungsi) dari Server Component. Fungsi tidak dapat
 // dikirim ke Client Component. State yang butuh interaksi ada di
 // ./error-state.tsx.
-import { Construction, Inbox, type LucideIcon } from "lucide-react";
+import { Inbox, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -50,22 +50,5 @@ export function TabelSkeleton({ baris = 5, kolom = 4 }: { baris?: number; kolom?
         </div>
       ))}
     </div>
-  );
-}
-
-/**
- * Penanda jujur untuk modul yang belum dibangun — tidak menampilkan data
- * palsu (PRD §18: modul yang belum terhubung harus diberi label jelas).
- */
-export function ModulBelumTersedia({ fase, deskripsi }: { fase: number; deskripsi?: string }) {
-  return (
-    <EmptyState
-      ikon={Construction}
-      judul={`Modul ini dijadwalkan pada Fase ${fase}`}
-      deskripsi={
-        deskripsi ??
-        "Halaman ini belum terhubung ke database dan belum dapat digunakan. Hak akses halaman sudah diterapkan."
-      }
-    />
   );
 }

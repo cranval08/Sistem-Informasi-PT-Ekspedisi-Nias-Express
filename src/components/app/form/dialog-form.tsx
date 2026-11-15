@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -32,7 +32,9 @@ import { cn } from "@/lib/utils";
 
 type Aksi = (formData: FormData) => Promise<HasilAksi<unknown>>;
 
-const PESAN_PUTUS = "Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.";
+// Respons hilang ≠ pasti gagal: permintaan mungkin sudah diproses server sebelum koneksi putus.
+const PESAN_PUTUS =
+  "Tidak dapat terhubung ke server, sehingga hasilnya belum dapat dipastikan. Periksa koneksi internet, muat ulang halaman untuk melihat data terbaru, lalu ulangi bila perubahan belum tersimpan.";
 
 /**
  * Kirim form ke server action: validasi Zod di klien dulu, lalu server.
@@ -43,6 +45,8 @@ export function useKirimForm(aksi: Aksi, skema?: z.ZodType, onBerhasil?: (data: 
   const [galat, setGalat] = useState<GalatField>({});
   const [pesan, setPesan] = useState<string>();
   const [sedangProses, mulai] = useTransition();
+  // Penjaga double-submit (PRD §13 butir 13): sinkron, tidak menunggu render ulang.
+  const terkirim = useRef(false);
 
   function bersihkan() {
     setGalat({});
@@ -51,6 +55,7 @@ export function useKirimForm(aksi: Aksi, skema?: z.ZodType, onBerhasil?: (data: 
 
   function kirim(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (terkirim.current) return;
     const fd = new FormData(e.currentTarget);
     if (skema) {
       const r = skema.safeParse(dataForm(fd));
@@ -60,12 +65,15 @@ export function useKirimForm(aksi: Aksi, skema?: z.ZodType, onBerhasil?: (data: 
         return;
       }
     }
+    terkirim.current = true;
     mulai(async () => {
       let h: HasilAksi<unknown>;
       try {
         h = await aksi(fd);
       } catch {
         h = { ok: false, pesan: PESAN_PUTUS };
+      } finally {
+        terkirim.current = false;
       }
       if (h.ok) {
         toast.success(h.pesan ?? "Data tersimpan.");
@@ -175,9 +183,12 @@ export function KonfirmasiAksi({
 }) {
   const [terbuka, setTerbuka] = useState(false);
   const [sedangProses, mulai] = useTransition();
+  const terkirim = useRef(false);
 
   function jalankan(e: React.MouseEvent) {
     e.preventDefault();
+    if (terkirim.current) return;
+    terkirim.current = true;
     const fd = new FormData();
     for (const [k, v] of Object.entries(data)) fd.set(k, v);
     mulai(async () => {
@@ -186,6 +197,8 @@ export function KonfirmasiAksi({
         h = await aksi(fd);
       } catch {
         h = { ok: false, pesan: PESAN_PUTUS };
+      } finally {
+        terkirim.current = false;
       }
       if (h.ok) toast.success(h.pesan ?? "Perubahan tersimpan.");
       else toast.error(h.pesan ?? "Perubahan gagal disimpan.");

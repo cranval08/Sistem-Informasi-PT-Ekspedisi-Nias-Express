@@ -73,6 +73,13 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
     });
   }
 
+  // PRD §15 Hak akses 3: belum login → diarahkan ke login (bukan 200/500).
+  it.each(SEMUA_RUTE)("belum login: %s → /login", async (rute) => {
+    const res = await fetch(APP + RUTE[rute].href, { redirect: "manual" });
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toMatch(/\/login/);
+  });
+
   // Rute dinamis: id tidak ada → 404 (bukan 500); peran tanpa akses → /akses-ditolak.
   const DINAMIS: [string, KunciRute][] = [
     ["/armada/00000000-0000-4000-8000-000000000000", "armada"],
@@ -85,10 +92,23 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
   for (const peran of Object.keys(AKUN) as Peran[]) {
     it.each(DINAMIS)(`${peran}: %s tidak dikenal`, async (path, rute) => {
       const res = await fetch(APP + path, { headers: { cookie: cookie[peran] }, redirect: "manual" });
-      if (bolehAkses(peran, rute)) expect(res.status).toBe(404);
-      else expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
+      if (bolehAkses(peran, rute)) {
+        // Dev: 404. Build produksi (Cache Components): notFound() di halaman
+        // dinamis terjadi setelah respons mulai dikirim → status 200, tetapi
+        // isinya halaman "Data tidak ditemukan" + noindex. Bukan 500.
+        expect([404, 200]).toContain(res.status);
+        const html = await res.text();
+        expect(html).toContain("Data tidak ditemukan");
+        expect(html).toMatch(/noindex/);
+      } else expect(res.headers.get("location")).toMatch(/\/akses-ditolak$/);
     });
   }
+  it("URL yang tidak dikenal → 404 berbahasa Indonesia", async () => {
+    const res = await fetch(`${APP}/halaman-yang-tidak-ada`, { headers: { cookie: cookie.admin_loket }, redirect: "manual" });
+    expect(res.status).toBe(404);
+    expect(await res.text()).toContain("Halaman tidak ditemukan");
+  });
+
   // Manifes sungguhan (bila ada di cloud): detail tampil untuk peran yang diizinkan.
   it("detail manifes yang ada tampil untuk peran yang diizinkan", async () => {
     const { url, publishableKey } = envPublik(process.env);

@@ -2,7 +2,9 @@
 
 Sistem informasi operasional PT. Ekspedisi Nias Express: transaksi & resi, pembayaran, manifes, armada, status pengiriman, dan dashboard. Kebutuhan lengkap ada di [`PRD.md`](PRD.md).
 
-> **Status: Fase 6 (dashboard & laporan) selesai.** Fase 7 (quality assurance) berikutnya.
+> **Status: MVP selesai — Fase 1–7 (termasuk quality assurance).** Pemetaan kriteria penerimaan PRD §14 & skenario uji §15 ke bukti pengujian, perbaikan Fase 7, batasan yang diketahui, dan daftar periksa deployment ada di [`docs/kesiapan-mvp.md`](docs/kesiapan-mvp.md). Langkah uji manual: [`docs/uji-manual.md`](docs/uji-manual.md).
+>
+> Fase 6 — dashboard & laporan:
 >
 > - **Dashboard per peran**: Pemilik — KPI, grafik transaksi & penerimaan (per hari/minggu/bulan), distribusi status, armada & utilisasi, peringatan kapasitas, indikator kontrol (peringatan duplikasi, override, pembatalan), data yang perlu diperiksa; filter Hari ini / 7 hari / Bulan ini / rentang khusus. Admin Loket — transaksi hari ini, belum lunas, pencarian, transaksi terbaru, data perlu diperiksa. Staf Gudang — barang siap dimuat, manifes aktif & muatan per truk, peringatan kapasitas, barang tiba belum diambil. Data dihitung dari database saat halaman dibuka (bukan real-time).
 > - **Laporan** (Pemilik): transaksi, pembayaran & kas, armada & tonase, pengiriman — dengan filter tanggal/status dan **ekspor CSV** yang mengikuti filter (titik koma + UTF-8 BOM agar langsung terbaca Excel Indonesia).
@@ -114,11 +116,26 @@ npm run build
 npm run check                             # semua di atas berurutan
 npm run test:remote                       # uji RLS ke Supabase Cloud dengan akun demo (butuh seed)
 npm run test:halaman                      # buka semua halaman sebagai tiap peran (butuh `npm run dev` berjalan)
+npm run uji:responsif                     # Chrome/Edge headless: tiap halaman × peran pada 375/768/1280 px (butuh server berjalan)
 ```
 
 `npm run test:halaman` login sebagai keempat akun demo, membuka setiap rute pada server yang sedang berjalan (default `http://localhost:3000`, ubah dengan `UJI_APP_URL`), dan memastikan halaman yang diizinkan merespons 200 sedangkan halaman lain dialihkan ke `/akses-ditolak`. Uji ini menangkap galat render server yang tidak terdeteksi oleh `npm run build`.
 
 `npm run test:remote` login sebagai keempat akun demo memakai publishable key dan memastikan RLS menolak akses yang tidak sah. Uji ini hanya membaca atau mencoba menulis yang harus ditolak, sehingga tidak mengubah data.
+
+`npm run uji:responsif` memakai Chrome atau Edge yang terpasang (atur `CHROME_PATH` bila tidak terdeteksi), mendeteksi scroll horizontal dan galat JavaScript, lalu menyimpan tangkapan layar ke `.uji-responsif/` (diabaikan git).
+
+Uji terhadap build produksi (disarankan sebelum deploy, karena perilaku streaming berbeda dari dev):
+
+```bash
+npm run build
+npx next start -p 3100
+UJI_APP_URL=http://localhost:3100 npm run test:halaman   # PowerShell: $env:UJI_APP_URL="http://localhost:3100"; npm run test:halaman
+```
+
+`tests/arsitektur.test.ts` (bagian dari `npm test`) memeriksa kode sumber: setiap halaman internal memanggil `wajibAksesRute` dengan kunci yang sesuai path, setiap server action memeriksa peran lebih dulu, secret key hanya dipakai di modul yang diizinkan, dan tidak ada klaim "real-time".
+
+**Uji manual** per peran (alur transaksi → pembayaran → manifes → pengambilan, laporan & CSV di Excel, hak akses lewat URL, tampilan ponsel): [`docs/uji-manual.md`](docs/uji-manual.md).
 
 Tes database (`tests/db/`) menjalankan seluruh migrasi di **PGlite** (Postgres dalam WASM) dengan shim skema `auth` Supabase, jadi tidak menyentuh database cloud dan tidak butuh Docker.
 
@@ -130,6 +147,10 @@ Tes database (`tests/db/`) menjalankan seluruh migrasi di **PGlite** (Postgres d
 4. Terapkan migrasi baru dengan `npm run db:push` sebelum deploy kode yang membutuhkannya.
    `SUPABASE_SECRET_KEY` dibutuhkan di server untuk membuat akun, menonaktifkan login, dan mengatur ulang password dari menu Data Pengguna.
 5. Aktifkan backup database sesuai paket Supabase.
+6. Setelah deploy, jalankan `UJI_APP_URL=https://<domain> npm run test:halaman` dari komputer lokal.
+7. Sebelum dipakai untuk data nyata: lengkapi Pengaturan, tarif, dan kapasitas aktual; matikan `mode_demo`; nonaktifkan atau ganti password akun demo.
+
+Daftar periksa lengkap: [`docs/kesiapan-mvp.md`](docs/kesiapan-mvp.md) §6.
 
 ## Integrasi yang belum tersedia
 

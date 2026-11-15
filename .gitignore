@@ -25,3 +25,6 @@ test-results/
 .DS_Store
 Thumbs.db
 *.log
+
+# keluaran uji responsif (tangkapan layar)
+/.uji-responsif/

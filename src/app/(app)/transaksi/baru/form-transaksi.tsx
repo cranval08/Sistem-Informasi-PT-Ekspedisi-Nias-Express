@@ -48,6 +48,8 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
   const [duplikat, setDuplikat] = useState<{ daftar: Duplikat[]; cetak: boolean } | null>(null);
   const [konfirmasiBatal, setKonfirmasiBatal] = useState(false);
   const [proses, mulai] = useTransition();
+  // Penjaga double-submit (PRD §13 butir 13): sinkron, tidak menunggu render ulang.
+  const terkirim = useRef(false);
 
   const peta = new Map(items.map((i) => [i.id, i]));
   const hitung = baris.map((b) => {
@@ -98,6 +100,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
   }
 
   function kirim(cetak: boolean, konfirmasiDuplikat = false) {
+    if (terkirim.current) return;
     const g = validasi();
     setGalat(g);
     if (Object.keys(g).length) {
@@ -105,6 +108,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
       return;
     }
     setPesan(undefined);
+    terkirim.current = true;
     mulai(async () => {
       try {
         const h = await simpanTransaksi({
@@ -117,10 +121,12 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
           konfirmasi_duplikat: konfirmasiDuplikat,
         });
         if (h.ok && h.data?.resi) {
+          // Tetap terkunci sampai halaman berpindah agar tidak tersimpan dua kali.
           toast.success(h.pesan);
           router.push(cetak ? `/transaksi/${h.data.resi}/cetak?otomatis=1` : `/transaksi/${h.data.resi}`);
           return;
         }
+        terkirim.current = false;
         if (h.data?.duplikat) {
           setDuplikat({ daftar: h.data.duplikat, cetak });
           return;
@@ -128,7 +134,12 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
         setGalat(h.galat ?? {});
         setPesan(h.pesan);
       } catch {
-        setPesan("Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi. Transaksi belum tersimpan.");
+        terkirim.current = false;
+        // Respons hilang ≠ pasti gagal. Bila ternyata tersimpan, mengirim ulang
+        // akan memicu peringatan duplikasi — bukan transaksi ganda diam-diam.
+        setPesan(
+          "Tidak dapat terhubung ke server, sehingga belum dapat dipastikan apakah transaksi tersimpan. Periksa koneksi, lalu cek Daftar Transaksi sebelum menyimpan ulang. Bila Anda menyimpan ulang dan transaksi ternyata sudah ada, sistem akan menampilkan peringatan duplikasi.",
+        );
       }
     });
   }

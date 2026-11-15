@@ -18,7 +18,8 @@
     "cek:env": "tsx scripts/cek-env.ts",
     "verifikasi:remote": "tsx scripts/verifikasi-remote.ts",
     "test:remote": "cross-env UJI_REMOTE=1 vitest run tests/remote/rls-remote.test.ts",
-    "test:halaman": "cross-env UJI_REMOTE=1 vitest run tests/remote/halaman-remote.test.ts"
+    "test:halaman": "cross-env UJI_REMOTE=1 vitest run tests/remote/halaman-remote.test.ts",
+    "uji:responsif": "tsx scripts/uji-responsif.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.6",

@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Banknote,
   BarChart3,
   Database,
   FileClock,
+  Loader2,
   LayoutDashboard,
   ReceiptText,
   Settings,
@@ -96,6 +97,23 @@ function TautanMenu({
       )}
     >
       {children}
+      <IndikatorMemuat />
     </Link>
+  );
+}
+
+/**
+ * Loading state navigasi (PRD §14): halaman internal dirender dinamis di
+ * server tanpa loading.tsx (agar status 307/404 tetap benar), jadi tautan
+ * yang diklik menampilkan pemutar kecil sampai halaman tujuan siap.
+ * Ukuran tetap & hanya opasitas yang berubah agar tidak menggeser tata letak.
+ */
+function IndikatorMemuat() {
+  const { pending } = useLinkStatus();
+  return (
+    <span className="ml-auto flex size-4 shrink-0 items-center justify-center">
+      <Loader2 aria-hidden className={cn("size-3.5 animate-spin transition-opacity", pending ? "opacity-100" : "opacity-0")} />
+      {pending && <span className="sr-only">Memuat…</span>}
+    </span>
   );
 }
