@@ -120,8 +120,6 @@ npm run test:halaman                      # buka semua halaman sebagai tiap pera
 
 `npm run test:remote` login sebagai keempat akun demo memakai publishable key dan memastikan RLS menolak akses yang tidak sah. Uji ini hanya membaca atau mencoba menulis yang harus ditolak, sehingga tidak mengubah data.
 
-**Uji manual**: daftar langkah per peran (dashboard, laporan & ekspor CSV di Excel, audit log, hak akses lewat URL, tampilan ponsel & mode gelap) ada di [`docs/uji-manual.md`](docs/uji-manual.md).
-
 Tes database (`tests/db/`) menjalankan seluruh migrasi di **PGlite** (Postgres dalam WASM) dengan shim skema `auth` Supabase, jadi tidak menyentuh database cloud dan tidak butuh Docker.
 
 ## 6. Deployment
