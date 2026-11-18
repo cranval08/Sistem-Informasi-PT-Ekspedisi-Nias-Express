@@ -41,7 +41,6 @@ export const RUTE = {
   masterPengguna:   { href: "/master/pengguna",        judul: "Data Pengguna",            peran: ["pemilik"] },
   pengaturan:       { href: "/pengaturan",             judul: "Pengaturan",               peran: ["pemilik"] },
   auditLog:         { href: "/audit-log",              judul: "Audit Log",                peran: ["pemilik"] },
-  sistemDesain:     { href: "/sistem-desain",          judul: "Sistem Desain",            peran: ["pemilik"] },
 } as const satisfies Record<string, { href: string; judul: string; peran: readonly Peran[] }>;
 
 export type KunciRute = keyof typeof RUTE;
@@ -66,7 +65,7 @@ export const MENU: GrupMenu[] = [
   { label: "Pembayaran & Kas", ikon: "pembayaran", item: ["pembayaran", "rekapKas"] },
   { label: "Laporan", ikon: "laporan", item: ["laporanTransaksi", "laporanKirim", "laporanArmada", "laporanBayar"] },
   { label: "Master Data", ikon: "master", item: ["masterItem", "masterPengguna"] },
-  { label: "Pengaturan", ikon: "pengaturan", item: ["pengaturan", "sistemDesain"] },
+  { label: "Pengaturan", ikon: "pengaturan", item: ["pengaturan"] },
   { label: "Audit Log", ikon: "audit", item: ["auditLog"] },
 ];
 

@@ -78,7 +78,7 @@ The Supabase project is **cloud only**: no local Supabase/Docker. Never commit `
   - Keep components that take an `ikon` prop or that are rendered from server pages free of `"use client"`; `components/app/states.tsx` is the example.
   - Put interactive pieces in their own client file, as with `error-state.tsx`.
   - `npm run build` does not render dynamic pages, so after UI changes run `npm run test:halaman` against `npm run dev`.
-- Design tokens are in `src/app/globals.css`: navy sidebar, blue primary, and semantic `success/warning/danger/info/neutral` with `-subtle` variants. Reusable components are in `components/app/`; `/sistem-desain` (Pemilik only) previews them.
+- Design tokens are in `src/app/globals.css`: navy sidebar, blue primary, and semantic `success/warning/danger/info/neutral` with `-subtle` variants. Reusable components are in `components/app/`.
 
 **DB tests:** `tests/db/harness.ts` boots PGlite, adds a shim for Supabase's `auth.uid()` and the `anon`/`authenticated` roles, applies all migrations, and loads a fixture. `sebagai(db, "supir", tx => …)` runs queries as a role. Cover every new RPC or rule there, mapped to the PRD §15 scenarios.
 

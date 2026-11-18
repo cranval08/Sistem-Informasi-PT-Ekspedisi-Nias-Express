@@ -107,8 +107,7 @@ async function main() {
           const masalah: string[] = [];
           if (r.sw > r.iw + 1) masalah.push(`scroll horizontal: lebar konten ${r.sw}px > layar ${r.iw}px`);
           for (const e of r.luber) masalah.push(`meluber s.d. ${e.kanan}px: <${e.tag} class="${e.kelas}"> "${e.teks}"`);
-          // /sistem-desain sengaja memperagakan state galat.
-          if (r.galat && p !== RUTE.sistemDesain.href) masalah.push("teks galat di halaman");
+          if (r.galat) masalah.push("teks galat di halaman");
           masalah.push(...galatBrowser);
           hasil.push({ peran, lebar: l.nama, path: p, masalah });
 

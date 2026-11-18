@@ -61,8 +61,7 @@ describe.skipIf(!aktif)("halaman per peran (server berjalan + Supabase Cloud)", 
         const html = await res.text();
         expect(html).not.toContain("Application error");
         // Galat kueri ditampilkan sebagai EmptyState "… gagal dimuat" dengan status 200 — tangkap juga.
-        // (/sistem-desain sengaja memperagakan state galat.)
-        if (rute !== "sistemDesain") expect(html, `${RUTE[rute].href} menampilkan galat muat data`).not.toMatch(/gagal dimuat/);
+        expect(html, `${RUTE[rute].href} menampilkan galat muat data`).not.toMatch(/gagal dimuat/);
         // Nilai tampilan rusak (format angka/tanggal) di teks halaman, di luar <script>.
         const teks = html.replace(/<script[\s\S]*?<\/script>/g, "");
         expect(teks, `${RUTE[rute].href} menampilkan nilai rusak`).not.toMatch(/>[^<]*(\bNaN\b|Invalid Date|\bundefined\b|\[object Object\])[^<]*</);
