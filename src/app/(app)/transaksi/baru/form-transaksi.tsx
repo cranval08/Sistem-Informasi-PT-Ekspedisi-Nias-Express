@@ -50,6 +50,8 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
   const [proses, mulai] = useTransition();
   // Penjaga double-submit (PRD §13 butir 13): sinkron, tidak menunggu render ulang.
   const terkirim = useRef(false);
+  // Dinaikkan saat form dikosongkan agar state internal pemilih pelanggan (kata cari, hasil) ikut bersih.
+  const [putaran, setPutaran] = useState(0);
 
   const peta = new Map(items.map((i) => [i.id, i]));
   const hitung = baris.map((b) => {
@@ -121,9 +123,15 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
           konfirmasi_duplikat: konfirmasiDuplikat,
         });
         if (h.ok && h.data?.resi) {
-          // Tetap terkunci sampai halaman berpindah agar tidak tersimpan dua kali.
           toast.success(h.pesan);
           router.push(cetak ? `/transaksi/${h.data.resi}/cetak?otomatis=1` : `/transaksi/${h.data.resi}`);
+          // Next.js (Cache Components) menyimpan state halaman ini saat pengguna
+          // kembali ke Buat Transaksi, jadi form harus dikosongkan dan kunci
+          // dilepas di sini — bukan menunggu komponen dibuat ulang. Selama
+          // perpindahan halaman, tombol tetap nonaktif karena transisi masih
+          // berjalan, sehingga tidak dapat tersimpan dua kali.
+          reset();
+          terkirim.current = false;
           return;
         }
         terkirim.current = false;
@@ -160,6 +168,7 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
     setGalat({});
     setPesan(undefined);
     setKonfirmasiBatal(false);
+    setPutaran((n) => n + 1);
   }
 
   return (
@@ -172,8 +181,8 @@ export function FormTransaksi({ items, zonaWaktu }: { items: ItemPilihan[]; zona
             <CardTitle>A–B. Pengirim &amp; penerima</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-6 md:grid-cols-2">
-            <PemilihPelanggan judul="Pengirim" nilai={pengirim} onPilih={setPengirim} galat={galat.id_pengirim} />
-            <PemilihPelanggan judul="Penerima" nilai={penerima} onPilih={setPenerima} galat={galat.id_penerima} />
+            <PemilihPelanggan key={`pengirim-${putaran}`} judul="Pengirim" nilai={pengirim} onPilih={setPengirim} galat={galat.id_pengirim} />
+            <PemilihPelanggan key={`penerima-${putaran}`} judul="Penerima" nilai={penerima} onPilih={setPenerima} galat={galat.id_penerima} />
           </CardContent>
         </Card>
 

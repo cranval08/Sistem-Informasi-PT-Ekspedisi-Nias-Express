@@ -9,6 +9,7 @@ Dokumen ini memetakan kriteria penerimaan PRD §14 dan skenario uji PRD §15 ke 
 | `npm test` | Tes database di PGlite (seluruh migrasi + fixture), unit domain (perhitungan biaya, kapasitas, CSV, tanggal Jakarta), dan uji arsitektur statis (`tests/arsitektur.test.ts`) | Tidak |
 | `npm run test:remote` | RLS & RPC di Supabase Cloud sebagai 4 akun demo (hanya membaca / mencoba menulis yang harus ditolak) | Ya, baca saja |
 | `npm run test:halaman` | Setiap rute × setiap peran pada server yang berjalan: 200 / 307 ke `/akses-ditolak` / 307 ke `/login`, nilai rusak (NaN, Invalid Date), ekspor CSV per peran | Ya, baca saja |
+| `npm run uji:alur-transaksi` | Chrome/Edge headless menjalankan uji manual bagian B sebagai Admin/Pemilik dengan klik & ketik sungguhan: validasi per field, dua transaksi berturut-turut tanpa muat ulang, duplikasi, klik ganda, snapshot tarif, cetak 3 format, tombol "Simpan & Cetak Resi" (dialog cetak terbuka sekali), pembatalan, pelanggan baru. **Menulis data [Demo]** | Ya, menulis |
 | `npm run uji:responsif` | Chrome/Edge headless: setiap halaman per peran pada 375, 768, dan 1280 px; mendeteksi scroll horizontal, galat JavaScript, dan menyimpan tangkapan layar ke `.uji-responsif/` | Ya, baca saja |
 | `npm run check` | typecheck + lint + `npm test` + build | Tidak |
 
@@ -57,6 +58,10 @@ Semua skenario sudah otomatis. Nama tes memuat nomor skenarionya:
 3. **Loading state navigasi.** Menu samping menampilkan indikator memuat saat halaman tujuan sedang diambil. `loading.tsx` sengaja tidak dipakai karena akan membuat redirect & 404 kehilangan status HTTP-nya.
 4. **Double-submit.** Formulir transaksi, pembayaran, dan dialog konfirmasi kini dikunci secara sinkron sejak klik pertama (bukan hanya tombol yang dinonaktifkan setelah render ulang).
 5. **Pesan koneksi putus jujur.** Bila respons server hilang, aplikasi tidak lagi menyatakan "belum tersimpan" (bisa saja sudah tersimpan); pengguna diminta memeriksa data terbaru. Transaksi yang dikirim ulang akan memicu peringatan duplikasi, bukan tersimpan ganda diam-diam.
+6. **Temuan uji manual B3 (diperbaiki).** Setelah satu transaksi tersimpan, kembali ke Buat Transaksi menampilkan isian lama dan tombol Simpan tidak merespons (validasi pun tidak muncul), sehingga transaksi berikutnya tidak dapat dibuat. Penyebab: penjaga double-submit butir 4 tetap terkunci, sedangkan Next.js menyimpan state halaman saat pengguna kembali. Kini form dikosongkan dan kunci dilepas setelah tersimpan; direproduksi dan diverifikasi dengan `uji:alur-transaksi` (B2b, B2c).
+7. **Pencarian nama bertanda baca.** Mengetik nama lengkap seperti "PT. Maju" atau "[Demo] CV …" tidak menemukan pelanggan karena tanda baca menjadi spasi dalam pola pencarian. Kini spasi menjadi wildcard (`polaIlike`) di semua pencarian (pelanggan, transaksi, pembayaran, manifes).
+8. **Tata letak pemilih pelanggan.** Kartu Penerima menimpa tombol "Ganti" pada kartu Pengirim di layar desktop (fieldset tidak menyusut di grid); diperbaiki dengan `min-w-0`, nama panjang dipotong dengan tooltip nama lengkap.
+9. **Temuan uji manual: "Simpan & Cetak Resi" tidak mencetak.** Transaksi tersimpan dan halaman cetak terbuka, tetapi dialog cetak browser tidak pernah muncul. Penyebab: `?otomatis` dihapus dari URL *sebelum* timer cetak berjalan, sehingga perubahan URL (dan di dev, Strict Mode) membatalkan timer itu; penanda "sudah dicetak" terpasang lebih dulu sehingga tidak dijadwalkan ulang. Kini dialog dibuka dulu, lalu `?otomatis` dihapus; diverifikasi di dev & build produksi dan oleh `uji:alur-transaksi` (B7a).
 
 ## 5. Batasan yang diketahui
 
@@ -68,7 +73,7 @@ Semua skenario sudah otomatis. Nama tes memuat nomor skenarionya:
 
 ## 6. Daftar periksa deployment (Vercel + Supabase)
 
-1. Semua migrasi sudah diterapkan ke project cloud (`npm run db:push`; terakhir `…1000`). Fase 7 **tidak** menambah migrasi.
+1. Semua migrasi sudah diterapkan ke project cloud (`npm run db:push`; terakhir `20261118000100_hak_service_role`). Project Supabase baru tidak memberi hak tabel bawaan kepada role API; migrasi `…0300` (anon/authenticated) dan `20261118000100` (service_role, hak minimal untuk seed & verifikasi) mengaturnya secara eksplisit. Periksa dengan `npm run verifikasi:remote`: semua tabel harus ✓.
 2. `npm run check` lulus; `test:remote`, `test:halaman`, dan `uji:responsif` lulus terhadap build produksi lokal.
 3. Push repository ke GitHub, import ke Vercel (framework Next.js terdeteksi otomatis).
 4. Environment variables di Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (tandai *Sensitive*). Jangan isi `DEMO_PASSWORD` di Vercel.

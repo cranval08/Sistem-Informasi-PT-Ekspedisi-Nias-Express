@@ -11,6 +11,7 @@ import {
   paramTunggal,
   rentangDariParam,
 } from "@/components/app/daftar";
+import { polaIlike } from "@/lib/domain/format";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { BadgeNada } from "@/components/app/status-badge";
@@ -60,7 +61,7 @@ export default async function HalamanPembayaran(props: PageProps<"/pembayaran">)
   const aman = kataKunciAman(q);
   if (aman) {
     const digit = aman.replace(/\D/g, "");
-    const filterPel = [`nama.ilike."%${aman}%"`];
+    const filterPel = [`nama.ilike."${polaIlike(aman)}"`];
     if (digit.length >= 3) filterPel.push(`telepon.like."%${normalisasiTelepon(digit)}%"`);
     const { data: pel } = await supabase.from("data_pelanggan").select("id_pelanggan").or(filterPel.join(",")).limit(100);
     const ids = (pel ?? []).map((p) => p.id_pelanggan);
@@ -73,7 +74,7 @@ export default async function HalamanPembayaran(props: PageProps<"/pembayaran">)
         .limit(300);
       resi = (t ?? []).map((x) => x.no_resi);
     }
-    const filter = [`no_resi.ilike."%${aman}%"`];
+    const filter = [`no_resi.ilike."${polaIlike(aman)}"`];
     if (resi.length) filter.push(`no_resi.in.(${resi.join(",")})`);
     kueri = kueri.or(filter.join(","));
   }

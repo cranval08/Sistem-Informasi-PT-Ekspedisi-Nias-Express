@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SearchX, Users } from "lucide-react";
 import { FilterTautan, FormPencarian, kataKunciAman, nomorHalaman, Paginasi, paramTunggal } from "@/components/app/daftar";
+import { polaIlike } from "@/lib/domain/format";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { StatusBadge } from "@/components/app/status-badge";
@@ -39,7 +40,7 @@ export default async function HalamanPelanggan(props: PageProps<"/pelanggan">) {
   const aman = kataKunciAman(q);
   if (aman) {
     const digit = aman.replace(/\D/g, "");
-    const filter = [`nama.ilike."%${aman}%"`];
+    const filter = [`nama.ilike."${polaIlike(aman)}"`];
     if (digit.length >= 3) filter.push(`telepon.like."%${normalisasiTelepon(digit)}%"`);
     kueri = kueri.or(filter.join(","));
   }

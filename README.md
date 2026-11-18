@@ -117,6 +117,7 @@ npm run check                             # semua di atas berurutan
 npm run test:remote                       # uji RLS ke Supabase Cloud dengan akun demo (butuh seed)
 npm run test:halaman                      # buka semua halaman sebagai tiap peran (butuh `npm run dev` berjalan)
 npm run uji:responsif                     # Chrome/Edge headless: tiap halaman × peran pada 375/768/1280 px (butuh server berjalan)
+npm run uji:alur-transaksi                # Chrome/Edge headless: alur Buat Transaksi (uji manual B) — MENULIS data [Demo] ke cloud
 ```
 
 `npm run test:halaman` login sebagai keempat akun demo, membuka setiap rute pada server yang sedang berjalan (default `http://localhost:3000`, ubah dengan `UJI_APP_URL`), dan memastikan halaman yang diizinkan merespons 200 sedangkan halaman lain dialihkan ke `/akses-ditolak`. Uji ini menangkap galat render server yang tidak terdeteksi oleh `npm run build`.

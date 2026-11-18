@@ -25,13 +25,18 @@ Tandai setiap baris ✅ / ❌ dan catat temuannya (mis. "D4 ❌ pesan tidak meny
 
 ## B. Transaksi & resi (Admin Loket)
 
+Bagian ini juga tersedia sebagai uji otomatis di peramban: `npm run uji:alur-transaksi` (server harus berjalan). Uji itu **menulis** transaksi & pelanggan [Demo] ke cloud, mengubah tarif demo sementara lalu mengembalikannya, dan menyimpan tangkapan layar `alur-*.png` di `.uji-responsif/`.
+
+
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
 | B1 | **Pelanggan** → tambah pelanggan baru dengan telepon `+62 812-…`; lalu tambah lagi dengan nomor yang sama. | Telepon tersimpan sebagai `08…`; yang kedua ditolak "sudah terdaftar". |
-| B2 | **Buat Transaksi**: pilih pengirim & penerima, dua baris barang (mis. satu kg, satu koli), bayar lunas → **Simpan & Cetak Resi**. | Total biaya di ringkasan = jumlah subtotal; resi berformat `NX-YYYYMMDD-NNNN`; halaman cetak terbuka. |
+| B2 | **Buat Transaksi**: pilih pengirim & penerima, dua baris barang (mis. satu kg, satu koli), bayar lunas → **Simpan & Cetak Resi**. | Total biaya di ringkasan = jumlah subtotal; resi berformat `NX-YYYYMMDD-NNNN`; halaman cetak terbuka dan dialog cetak browser muncul otomatis satu kali (memuat ulang halaman tidak memunculkannya lagi). |
 | B3 | Coba simpan dengan pengirim kosong, berat `0`, berat `1,2345`, dan pembayaran melebihi total. | Masing-masing ditolak dengan pesan jelas di field terkait; tidak ada transaksi tersimpan. |
 | B4 | Ulangi B2 dengan pengirim, penerima, dan berat total yang **sama persis** hari ini. | Dialog "Kemungkinan transaksi ganda" menampilkan resi yang mirip; **Periksa lagi** membatalkan, **tetap simpan** menyimpan. |
 | B5 | Klik **Simpan Transaksi** dua kali cepat. | Hanya satu transaksi tersimpan (tombol berubah "Menyimpan…"). |
+| B5b | Setelah transaksi tersimpan, kembali ke **Buat Transaksi** lewat menu, lalu lewat tombol Back browser, dan buat transaksi berikutnya. | Form kosong; validasi dan tombol Simpan berfungsi; transaksi kedua tersimpan. |
+| B5c | Cari pelanggan dengan mengetik nama lengkap yang mengandung tanda baca (mis. "[Demo] CV Contoh Makmur" atau "PT. …"). | Pelanggan tetap ditemukan. |
 | B6 | Pemilik → **Jenis Barang & Tarif** → ubah tarif barang yang dipakai di B2. Buka lagi detail resi B2. | Tarif & total resi lama tidak berubah; transaksi baru memakai tarif baru. |
 | B7 | Cetak resi: coba format **Standar (A5)**, **Thermal 80 mm**, dan **Thermal 58 mm** (pratinjau cetak browser). | Isi terbaca, tidak terpotong; tanpa sidebar/banner. |
 | B8 | Pemilik membatalkan transaksi tanpa pembayaran (wajib alasan). | Status "Dibatalkan" dengan alasan; transaksi yang sudah dibayar tidak dapat dibatalkan. |

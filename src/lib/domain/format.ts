@@ -57,6 +57,16 @@ export function kataKunciAman(q: string | undefined): string {
   return (q ?? "").replace(/[^\p{L}\p{N} '\-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
 }
 
+/**
+ * Pola ILIKE "mengandung" dari kata kunci yang sudah melalui kataKunciAman.
+ * Spasi menjadi wildcard karena tanda baca diganti spasi oleh kataKunciAman:
+ * "PT. Maju" → "PT Maju" → %PT%Maju% tetap menemukan "PT. Maju", dan
+ * "[Demo] CV" menemukan "[Demo] CV …".
+ */
+export function polaIlike(aman: string): string {
+  return `%${aman.replaceAll(" ", "%")}%`;
+}
+
 /** Tanggal kalender (YYYY-MM-DD) di zona waktu operasional, digeser `hari`. */
 export function tanggalOperasional(zonaWaktu: string = ZONA_WAKTU_DEFAULT, hari = 0, dari: Date = new Date()): string {
   const d = new Date(dari.getTime() + hari * 86_400_000);

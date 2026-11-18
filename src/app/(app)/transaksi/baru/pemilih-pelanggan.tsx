@@ -50,7 +50,7 @@ export function PemilihPelanggan({
 
   if (nilai) {
     return (
-      <fieldset className="space-y-2">
+      <fieldset className="min-w-0 space-y-2">
         <legend className="text-sm font-medium">{judul}</legend>
         <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 p-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -58,7 +58,7 @@ export function PemilihPelanggan({
               <UserRound className="size-4" aria-hidden />
             </span>
             <div className="min-w-0">
-              <p className="truncate font-medium">{nilai.nama}</p>
+              <p className="truncate font-medium" title={nilai.nama}>{nilai.nama}</p>
               <p className="text-sm text-muted-foreground tabular-nums">{nilai.telepon}</p>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function PemilihPelanggan({
   }
 
   return (
-    <fieldset className="space-y-2">
+    <fieldset className="min-w-0 space-y-2">
       <legend className="text-sm font-medium">
         {judul}
         <span className="text-danger" aria-hidden>

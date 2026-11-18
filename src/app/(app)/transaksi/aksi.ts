@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { berhasil, gagal, gagalAkses, gagalDb, gagalValidasi, type HasilAksi } from "@/lib/aksi/hasil";
 import { profilUntukAksi } from "@/lib/auth/sesi";
-import { kataKunciAman, normalisasiTelepon } from "@/lib/domain/format";
+import { kataKunciAman, normalisasiTelepon, polaIlike } from "@/lib/domain/format";
 import { dataForm, skemaBatalTransaksi, skemaOverrideBelumLunas, skemaPelanggan, skemaTransaksi, type InputTransaksi } from "@/lib/domain/skema";
 import { buatKlienServer } from "@/lib/supabase/server";
 
@@ -17,7 +17,7 @@ export async function cariPelangganTransaksi(q: string): Promise<PelangganPiliha
   const aman = kataKunciAman(q);
   if (aman.length < 2) return [];
   const digit = aman.replace(/\D/g, "");
-  const filter = [`nama.ilike."%${aman}%"`];
+  const filter = [`nama.ilike."${polaIlike(aman)}"`];
   if (digit.length >= 3) filter.push(`telepon.like."%${normalisasiTelepon(digit)}%"`);
 
   const supabase = await buatKlienServer();

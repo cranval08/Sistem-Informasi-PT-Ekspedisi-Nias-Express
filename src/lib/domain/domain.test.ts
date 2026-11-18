@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { formatRupiah, formatTanggalWaktu, normalisasiTelepon, teleponValid } from "./format";
+import { formatRupiah, formatTanggalWaktu, kataKunciAman, normalisasiTelepon, polaIlike, teleponValid } from "./format";
 import { bolehAkses, MENU, menuUntuk, RUTE, ruteDariPath, type KunciRute } from "./peran";
 
 describe("format", () => {
+  it("pencarian: tanda baca dibuang dan spasi menjadi wildcard (nama berbaca tetap ditemukan)", () => {
+    expect(polaIlike(kataKunciAman("PT. Maju"))).toBe("%PT%Maju%");
+    expect(polaIlike(kataKunciAman("[Demo] CV Contoh"))).toBe("%Demo%CV%Contoh%");
+    expect(polaIlike(kataKunciAman("NX-20261114-0001"))).toBe("%NX-20261114-0001%");
+    // Karakter sintaks PostgREST (koma, kurung, titik) tidak pernah lolos.
+    expect(polaIlike(kataKunciAman("a,b.(c)"))).toBe("%a%b%c%");
+  });
+
   it("Rupiah id-ID tanpa desimal", () => {
     expect(formatRupiah(1250000).replace(/\s/g, " ")).toBe("Rp 1.250.000");
     expect(formatRupiah(null)).toBe("—");

@@ -25,10 +25,17 @@ export function ToolbarCetak({ noResi, format, otomatis }: { noResi: string; for
 
   useEffect(() => {
     if (!otomatis || sudah.current) return;
-    sudah.current = true;
-    // Hapus ?otomatis agar muat ulang tidak membuka dialog cetak lagi.
-    router.replace(format === "standar" ? pathname : `${pathname}?format=${format}`, { scroll: false });
-    const t = setTimeout(() => window.print(), 300);
+    // Penanda `sudah` dipasang saat timer berjalan, bukan sebelumnya: bila
+    // efek dibersihkan lebih dulu (Strict Mode menjalankan efek dua kali, atau
+    // URL berubah), timer dibatalkan dan efek berikutnya menjadwalkan ulang.
+    // ?otomatis baru dihapus setelah dialog cetak dibuka — menghapusnya lebih
+    // dulu mengubah `otomatis` menjadi false dan membatalkan timer cetak.
+    const t = setTimeout(() => {
+      sudah.current = true;
+      window.print();
+      // Hapus ?otomatis agar muat ulang tidak membuka dialog cetak lagi.
+      router.replace(format === "standar" ? pathname : `${pathname}?format=${format}`, { scroll: false });
+    }, 300);
     return () => clearTimeout(t);
   }, [otomatis, format, pathname, router]);
 

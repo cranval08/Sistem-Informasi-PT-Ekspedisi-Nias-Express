@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, SearchX, Warehouse } from "lucide-react";
 import { FilterTautan, FormPencarian, kataKunciAman, nomorHalaman, Paginasi, paramTunggal } from "@/components/app/daftar";
+import { polaIlike } from "@/lib/domain/format";
 import { MeterKapasitas } from "@/components/app/meter-kapasitas";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
@@ -57,9 +58,9 @@ export default async function HalamanManifes(props: PageProps<"/manifes">) {
   // Cari rute atau plat nomor.
   const aman = kataKunciAman(q);
   if (aman) {
-    const { data: armada } = await supabase.from("data_armada").select("id_armada").ilike("plat_nomor", `%${aman}%`).limit(50);
+    const { data: armada } = await supabase.from("data_armada").select("id_armada").ilike("plat_nomor", polaIlike(aman)).limit(50);
     const ids = (armada ?? []).map((a) => a.id_armada);
-    const f = [`rute.ilike."%${aman}%"`];
+    const f = [`rute.ilike."${polaIlike(aman)}"`];
     if (ids.length) f.push(`id_armada.in.(${ids.join(",")})`);
     kueri = kueri.or(f.join(","));
   }

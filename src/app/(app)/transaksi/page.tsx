@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClipboardList, Plus, SearchX } from "lucide-react";
 import { FilterTautan, FormPencarian, kataKunciAman, nomorHalaman, Paginasi, paramTunggal } from "@/components/app/daftar";
+import { polaIlike } from "@/lib/domain/format";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { BadgeNada, StatusBadge } from "@/components/app/status-badge";
@@ -55,11 +56,11 @@ export default async function HalamanTransaksi(props: PageProps<"/transaksi">) {
   const aman = kataKunciAman(q);
   if (aman) {
     const digit = aman.replace(/\D/g, "");
-    const filterPel = [`nama.ilike."%${aman}%"`];
+    const filterPel = [`nama.ilike."${polaIlike(aman)}"`];
     if (digit.length >= 3) filterPel.push(`telepon.like."%${normalisasiTelepon(digit)}%"`);
     const { data: pel } = await supabase.from("data_pelanggan").select("id_pelanggan").or(filterPel.join(",")).limit(100);
     const ids = (pel ?? []).map((p) => p.id_pelanggan);
-    const filter = [`no_resi.ilike."%${aman}%"`];
+    const filter = [`no_resi.ilike."${polaIlike(aman)}"`];
     if (ids.length) filter.push(`id_pengirim.in.(${ids.join(",")})`, `id_penerima.in.(${ids.join(",")})`);
     kueri = kueri.or(filter.join(","));
   }
